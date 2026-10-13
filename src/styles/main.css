@@ -12,7 +12,7 @@
   --display-track: -0.02em;
   --nav-size: 0.95rem;
   /* décalage RVB de la typo identitaire (rouge à gauche, bleu à droite) */
-  --rgb-shift: -0.028em 0 rgb(255 0 60 / 0.75), 0.028em 0 rgb(0 150 255 / 0.75);
+  --rgb-shift: -0.012em 0 rgb(255 0 60 / 0.55), 0.012em 0 rgb(0 150 255 / 0.55);
   --font-sans: 'Figtree', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
@@ -142,18 +142,19 @@ ul {
   pointer-events: none;
 }
 .loader__count {
-  /* même style que la barre du haut, en bas à droite sous la ligne */
-  order: 2;
+  /* grand numéro (typo identitaire), à droite, au-dessus de la ligne */
   align-self: flex-end;
-  margin-top: 0.9rem;
-  font-size: var(--nav-size);
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  line-height: 1;
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 14vw, 12rem);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
+  font-optical-sizing: auto;
+  line-height: 0.9;
   font-variant-numeric: tabular-nums;
-  text-shadow: -1.5px 0 rgb(255 0 60 / 0.8), 1.5px 0 rgb(0 150 255 / 0.8);
+  text-shadow: var(--rgb-shift);
 }
 .loader__bar {
+  margin-top: 1.2rem;
   height: 1px;
   background: var(--line);
 }
@@ -163,8 +164,8 @@ ul {
   background: var(--fg);
   /* décalage RVB : rouge au-dessus, bleu en dessous */
   box-shadow:
-    0 -1.5px 0 rgb(255 0 60 / 0.75),
-    0 1.5px 0 rgb(0 150 255 / 0.75);
+    0 -1px 0 rgb(255 0 60 / 0.55),
+    0 1px 0 rgb(0 150 255 / 0.55);
   transform: scaleX(0);
   transform-origin: left;
 }
