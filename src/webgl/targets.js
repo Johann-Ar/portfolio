@@ -136,3 +136,83 @@ export function imageTarget(src, { fit = 'contain', size = 0.5, mobileSize = 0.9
     return { pos, col, tone }
   }
 }
+
+/**
+ * Ancienne version du splat (touche B sur l'accueil) : les points sont répartis selon la lumière
+ * (zones claires en thème sombre, zones foncées en thème clair), avec une taille et une opacité
+ * qui suivent la luminance. Plein écran, déborde du cadre comme la version grille.
+ */
+export function sampledTarget(src, { overscan = 1.18, depth = 6, gamma = 1.4, light = false, focusX = 0.5 } = {}) {
+  return async (count, view, isSmall) => {
+    const img = await loadImage(src)
+    const ratio = img.naturalWidth / img.naturalHeight
+    const w = ratio >= 1 ? 440 : Math.round(440 * ratio)
+    const h = ratio >= 1 ? Math.round(440 / ratio) : 440
+    const ctx = canvas2d(w, h)
+    ctx.drawImage(img, 0, 0, w, h)
+    const data = ctx.getImageData(0, 0, w, h).data
+    const blur = canvas2d(w, h)
+    blur.filter = `blur(${w / 140}px)`
+    blur.drawImage(img, 0, 0, w, h)
+    const soft = blur.getImageData(0, 0, w, h).data
+
+    const n = w * h
+    const lum = new Float32Array(n)
+    const zmap = new Float32Array(n)
+    let lo = 1
+    let hi = 0
+    for (let i = 0; i < n; i++) {
+      lum[i] = luma(data[i * 4], data[i * 4 + 1], data[i * 4 + 2])
+      zmap[i] = luma(soft[i * 4], soft[i * 4 + 1], soft[i * 4 + 2])
+      lo = Math.min(lo, lum[i])
+      hi = Math.max(hi, lum[i])
+    }
+    const span = Math.max(hi - lo, 1e-3)
+    const cdf = new Float32Array(n)
+    let total = 0
+    for (let i = 0; i < n; i++) {
+      let l = (lum[i] - lo) / span
+      zmap[i] = Math.min(1, Math.max(0, (zmap[i] - lo) / span))
+      if (light) l = 1 - l
+      lum[i] = l
+      total += Math.pow(l, gamma)
+      cdf[i] = total
+    }
+
+    // plein écran, débordement ; sur mobile, recentré sur le sujet
+    const cell = Math.max((view.w * overscan) / w, (view.h * overscan) / h)
+    let x0 = (-w * cell) / 2
+    if (isSmall) x0 = Math.min(-view.w / 2, Math.max(view.w / 2 - w * cell, -focusX * w * cell))
+    const y0 = (h * cell) / 2
+    const pxWorld = view.h / window.innerHeight // taille d'un pixel écran en unités monde
+
+    const pos = new Float32Array(count * 4)
+    const col = new Float32Array(count * 4)
+    const tone = new Float32Array(count * 2)
+    const step = total / count
+    const offset = Math.random() * step
+    for (let i = 0; i < count; i++) {
+      const r = offset + i * step
+      let a = 0
+      let b = n - 1
+      while (a < b) {
+        const m = (a + b) >> 1
+        if (cdf[m] < r) a = m + 1
+        else b = m
+      }
+      const l = lum[a]
+      const o = i * 4
+      pos[o] = x0 + ((a % w) + Math.random()) * cell
+      pos[o + 1] = y0 - (Math.floor(a / w) + Math.random()) * cell
+      pos[o + 2] = (zmap[a] - 0.5) * depth + (Math.random() - 0.5) * 0.12
+      pos[o + 3] = pxWorld * 2.3 * (0.6 + l * 0.7)
+      col[o] = data[a * 4] / 255
+      col[o + 1] = data[a * 4 + 1] / 255
+      col[o + 2] = data[a * 4 + 2] / 255
+      col[o + 3] = 0.3 + 0.7 * l
+      tone[i * 2] = 0.3 + 0.7 * l
+      tone[i * 2 + 1] = 0.3 + 0.7 * l
+    }
+    return { pos, col, tone }
+  }
+}

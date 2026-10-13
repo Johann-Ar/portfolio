@@ -37,6 +37,7 @@ function applyTheme(theme, save = false) {
   themeToggle.querySelector('.theme-toggle__label').textContent = theme === 'dark' ? 'Clair' : 'Sombre'
   themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Passer en thème clair' : 'Passer en thème sombre')
   cloud?.setColor(themeColors[theme].points, theme === 'light')
+  if (cloud) updateCloud() // l'ancienne version du splat dépend du thème
 }
 applyTheme(root.dataset.theme === 'light' ? 'light' : 'dark')
 themeToggle.addEventListener('click', (e) => {
@@ -117,7 +118,7 @@ app.innerHTML = `
     </div>
   </section>
 
-  <section class="contact" id="contact" data-cloud="hero" data-cloud-opacity="0.3" aria-labelledby="contact-title">
+  <section class="contact" id="contact" data-cloud="contact" data-cloud-opacity="0.6" aria-labelledby="contact-title">
     <h2 class="section-title section-title--center reveal" id="contact-title">Contact</h2>
     <p class="contact__text reveal">Un stage, un projet, une question : écrivez-moi.</p>
     <a class="contact__mail reveal" href="mailto:${esc(site.email)}"><span>${esc(site.email)}</span></a>
@@ -133,7 +134,7 @@ app.innerHTML = `
 
   <footer class="footer">
     <span>© ${new Date().getFullYear()} ${esc(site.name)}</span>
-    <span class="footer__key"><kbd>Espace</kbd> couleurs du nuage</span>
+    <span class="footer__key"><kbd>Espace</kbd> couleurs <kbd>B</kbd> autre rendu de l’accueil</span>
     <span>${esc(site.role)} — ${esc(site.location)}</span>
   </footer>
 `
@@ -215,7 +216,7 @@ async function initCloud() {
     root.classList.add('no-webgl')
     return
   }
-  const [{ PointCloud }, { imageTarget }] = await Promise.all([
+  const [{ PointCloud }, { imageTarget, sampledTarget }] = await Promise.all([
     import('./webgl/PointCloud.js'),
     import('./webgl/targets.js'),
   ])
@@ -223,7 +224,13 @@ async function initCloud() {
   cloud = new PointCloud(canvas, { color: themeColors[theme].points, light: theme === 'light', reducedMotion })
   cloud.onContextLost = () => root.classList.add('no-webgl')
   // accueil : la photo remplit l'écran et déborde du cadre
-  cloud.register('hero', imageTarget(`${BASE}media/site/portrait.webp`, { fit: 'cover', overscan: 1.18, depth: 6, focusX: 0.64 }))
+  const portrait = `${BASE}media/site/portrait.webp`
+  cloud.register('hero', imageTarget(portrait, { fit: 'cover', overscan: 1.18, depth: 6, focusX: 0.62 }))
+  // touche B : ancienne version (points répartis selon la lumière), toujours plein écran
+  cloud.register('hero-old-dark', sampledTarget(portrait, { focusX: 0.62 }))
+  cloud.register('hero-old-light', sampledTarget(portrait, { focusX: 0.62, light: true }))
+  // contact : Thomas Gainsborough, « View near King's Bromley-on-Trent » (domaine public)
+  cloud.register('contact', imageTarget(`${BASE}media/site/view-near.webp`, { fit: 'cover', overscan: 1.12, depth: 6 }))
   cloud.register('terrain', imageTarget(`${BASE}media/site/terrain-cloud.webp`, { paper: true, size: 0.85, depth: 5 }))
   // projets : les couvertures du portfolio (imprimées sur fond blanc)
   for (const p of projects) cloud.register(p.slug, imageTarget(`${BASE}media/${p.cloud}`, { paper: true, size: 0.5, depth: 6 }))
@@ -237,6 +244,7 @@ const workSection = document.getElementById('projets')
 // projet affiché dans le nuage : reste sélectionné quand on quitte la liste pour manipuler le nuage
 let selected = projects[0].slug
 let inWork = false
+let heroOld = false // touche B
 
 function updateCloud() {
   const vh = window.innerHeight
@@ -253,7 +261,9 @@ function updateCloud() {
     list.classList.toggle('has-selection', inWork)
   }
   if (!cloud) return
-  cloud.show(inWork ? selected : section.dataset.cloud)
+  let key = inWork ? selected : section.dataset.cloud
+  if (key === 'hero' && heroOld) key = `hero-old-${root.dataset.theme}`
+  cloud.show(key)
   cloud.setScroll(section.id === 'top' ? heroProgress * 0.4 : 0)
   cloud.setOpacity(Number(section.dataset.cloudOpacity ?? 1))
   cloud.setOffset(inWork && !isSmall() ? 0.17 : 0)
@@ -317,12 +327,17 @@ const endDrag = () => {
 stage.addEventListener('pointerup', endDrag)
 stage.addEventListener('pointercancel', endDrag)
 
-/* Espace : bascule le nuage entre monochrome et couleurs de l'image */
+/* Espace : monochrome / couleurs de l'image. B : ancienne version du splat de l'accueil */
 window.addEventListener('keydown', (e) => {
-  if (e.code !== 'Space' || e.repeat || !cloud || caseView.isOpen) return
+  if (e.repeat || !cloud || caseView.isOpen || e.metaKey || e.ctrlKey || e.altKey) return
   if (e.target.closest?.('input, textarea, select, button, a, [contenteditable]')) return
-  e.preventDefault()
-  root.classList.toggle('cloud-color', cloud.toggleColorMode())
+  if (e.code === 'Space') {
+    e.preventDefault()
+    root.classList.toggle('cloud-color', cloud.toggleColorMode())
+  } else if (e.key === 'b' || e.key === 'B') {
+    heroOld = !heroOld
+    updateCloud()
+  }
 })
 
 let ticking = false

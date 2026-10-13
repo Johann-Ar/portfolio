@@ -276,8 +276,8 @@
 1080
 ],
 "site/portrait.webp": [
-1266,
-572
+1800,
+812
 ],
 "site/squid-cloud.webp": [
 1800,
@@ -286,5 +286,9 @@
 "site/terrain-cloud.webp": [
 1800,
 749
+],
+"site/view-near.webp": [
+1800,
+1278
 ]
 }

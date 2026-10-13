@@ -1,7 +1,8 @@
 /* ------------------------------------------------------------------
    Johann Arata — portfolio
    Thème sombre par défaut, thème clair (noir et blanc) en option.
-   Fond : halos aux couleurs du logo Apple TV (violet, bleu, vert, jaune, orange, rouge).
+   Fond : halos de la palette du site (rose bonbon #FF98E5, bleu lavande #B2A3E9,
+   vert menthe #98DDBE, rose corail #F799AB).
    Titres : Instrument Serif · Texte : Figtree · Étiquettes : IBM Plex Mono
 ------------------------------------------------------------------- */
 
@@ -32,12 +33,12 @@
   --media-bg: #16151b;
   --blend: normal;
   --backdrop:
-    radial-gradient(ellipse 50% 45% at 0% 0%, rgb(150 70 255 / 0.24), transparent 70%),
-    radial-gradient(ellipse 45% 40% at 50% -8%, rgb(40 110 255 / 0.2), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 100% 0%, rgb(40 205 120 / 0.2), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 100% 100%, rgb(255 205 40 / 0.2), transparent 70%),
-    radial-gradient(ellipse 45% 40% at 50% 108%, rgb(255 130 30 / 0.24), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 0% 100%, rgb(255 50 70 / 0.24), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 0% 0%, rgb(255 152 229 / 0.2), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 50% -8%, rgb(178 163 233 / 0.15), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 100% 0%, rgb(178 163 233 / 0.2), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 100% 100%, rgb(152 221 190 / 0.2), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 50% 108%, rgb(152 221 190 / 0.15), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 0% 100%, rgb(247 153 171 / 0.2), transparent 70%),
     #050407;
   color-scheme: dark;
 }
@@ -54,12 +55,12 @@
   --media-bg: #ececec;
   --blend: normal;
   --backdrop:
-    radial-gradient(ellipse 50% 45% at 0% 0%, rgb(150 70 255 / 0.26), transparent 70%),
-    radial-gradient(ellipse 45% 40% at 50% -8%, rgb(40 110 255 / 0.22), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 100% 0%, rgb(40 205 120 / 0.22), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 100% 100%, rgb(255 205 40 / 0.22), transparent 70%),
-    radial-gradient(ellipse 45% 40% at 50% 108%, rgb(255 130 30 / 0.26), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 0% 100%, rgb(255 50 70 / 0.26), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 0% 0%, rgb(255 152 229 / 0.45), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 50% -8%, rgb(178 163 233 / 0.35), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 100% 0%, rgb(178 163 233 / 0.45), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 100% 100%, rgb(152 221 190 / 0.45), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 50% 108%, rgb(152 221 190 / 0.35), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 0% 100%, rgb(247 153 171 / 0.45), transparent 70%),
     #ffffff;
   color-scheme: light;
 }
@@ -527,6 +528,7 @@ ul {
 /* ---------- Contact ---------- */
 
 .contact {
+  text-shadow: 0 0 22px rgb(0 0 0 / 0.55);
   min-height: 90vh;
   padding: 14vh var(--edge) 0;
   display: flex;
@@ -966,4 +968,8 @@ ul {
 /* page derrière la fiche projet : plus de scroll */
 html.case-open {
   overflow: hidden;
+}
+
+[data-theme='light'] .contact {
+  text-shadow: 0 0 22px rgb(255 255 255 / 0.8);
 }
