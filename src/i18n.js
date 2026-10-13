@@ -42,10 +42,6 @@ export const ui = {
   workTitle: L('Projets choisis', 'Selected work'),
   skills: L('Compétences', 'Skills'),
   langSwitch: L('Read in English', 'Lire en français'),
-  keys: L(
-    '<kbd>Espace</kbd> mono / couleur / bleu <kbd>B</kbd> autre rendu <kbd>V</kbd> volumétrie SHARP <kbd>P</kbd> réglages',
-    '<kbd>Space</kbd> mono / colour / blue <kbd>B</kbd> alt render <kbd>V</kbd> SHARP volume <kbd>P</kbd> settings',
-  ),
   next: L('Projet suivant', 'Next project'),
   keepScrolling: L('Continuez à défiler', 'Keep scrolling'),
   close: L('Fermer', 'Close'),

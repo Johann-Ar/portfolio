@@ -20,6 +20,8 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
 - fiches projet : petites images regroupées par deux (bento) ; au bout, continuer à défiler ouvre le projet suivant ;
 - thème sombre uniquement ; fond en dégradé de la palette du site, derrière tout
   (rose bonbon `#FF98E5`, bleu lavande `#B2A3E9`, vert menthe `#98DDBE`, rose corail `#F799AB`) ;
+- accueil et contact : images passées en niveaux de gris hors du site (`scripts/grayscale.py` : sources et volumes SHARP) ;
+- raccourcis (Espace, B, V, P) actifs mais non affichés ;
 - contact : splat du tableau de Thomas Gainsborough, *View near King's Bromley-on-Trent* ;
 - accueil : élément 3D en verre au centre, même technique que celui de dorianlods.com, réécrite pour Three.js
   (`src/webgl/GlassElement.js`) : la scène derrière le verre et les normales des faces arrière sont rendues

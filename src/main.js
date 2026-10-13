@@ -114,7 +114,6 @@ app.innerHTML = `
 
   <footer class="footer">
     <span>© ${new Date().getFullYear()} ${esc(site.name)}</span>
-    <span class="footer__key" data-t="keys">${tr(ui.keys)}</span>
     <span><span data-t="role">${esc(tr(ui.role))}</span> — ${esc(site.location)}</span>
   </footer>
 `
