@@ -15,7 +15,7 @@ const rand = () => {
 const r = (min, max) => (min + rand() * (max - min)).toFixed(3)
 
 /** Renvoie le HTML d'une suite de mots en tuiles. `words` : chaîne ou tableau de chaînes. */
-export function tiles(words, { tag = 'span', className = '', label } = {}) {
+export function tiles(words, { tag = 'span', className = '', label, ghost = false } = {}) {
   const list = Array.isArray(words) ? words : [words]
   const text = label ?? list.join(' ')
   const inner = list
@@ -24,8 +24,10 @@ export function tiles(words, { tag = 'span', className = '', label } = {}) {
         .map((ch) => {
           if (ch === ' ') return '<span class="tile-space"></span>'
           const c = esc(ch)
-          const style = `--dx:${r(-0.02, 0.02)};--dy:${r(-0.035, 0.035)};--rot:${r(-0.8, 0.8)};--k:${r(-1, 1)};--z:${r(0.4, 1)};--b1:${r(5, 60)}%;--b2:${r(5, 50)}%`
-          return `<span class="tile" style="${style}"><span class="tile__g">${c}</span><span class="tile__ghost">${c}</span></span>`
+          // décalage vertical seulement : les carreaux restent jointifs, sans rotation (pas de joints clairs)
+          const style = `--dy:${r(-0.035, 0.035)};--k:${r(-1, 1)};--z:${r(0.4, 1)};--b1:${r(10, 55)}%;--b2:${r(10, 45)}%`
+          const g = ghost ? `<span class="tile__ghost">${c}</span>` : ''
+          return `<span class="tile" style="${style}"><span class="tile__g">${c}</span>${g}</span>`
         })
         .join('')
       return `<span class="tile-word">${letters}</span>`

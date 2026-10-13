@@ -43,8 +43,9 @@
   --muted: #6b6893;
   --line: rgb(59 33 255 / 0.22);
   --accent: #3b21ff;
-  --tile-bg: #3b21ff;
-  --tile-fg: #ffffff;
+  --tile-bg: #eeebff;
+  --tile-fg: #3b21ff;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --media-bg: #eceaff;
   --blend: normal;
   --backdrop:
@@ -187,8 +188,8 @@ ul {
   font-size: min(16.5vw, 25vh);
   transition: opacity 0.6s var(--ease);
 }
-[data-theme='light'] .title-layer {
-  opacity: calc(1 - var(--hp) * 0.85);
+.title-layer {
+  opacity: max(0.07, calc(1 - var(--hp) * 1.4));
 }
 .title-layer .tiles__inner {
   display: flex;
@@ -206,8 +207,7 @@ ul {
 }
 .is-ready .title-layer .tile {
   opacity: 1;
-  transform: translate3d(calc(var(--dx) * 1em + var(--mx, 0px) + var(--vel) * var(--k) * 0.012em), calc(var(--dy) * 1em + var(--my, 0px)), 0)
-    rotate(calc(var(--rot) * 1deg));
+  transform: translate3d(calc(var(--mx, 0px) + var(--vel) * var(--k) * 0.012em), calc(var(--dy) * 1em + var(--my, 0px)), 0);
   transition: opacity 0.9s var(--ease) calc(var(--z) * 400ms), transform 0.1s linear;
 }
 @media (max-width: 768px) {
@@ -218,11 +218,6 @@ ul {
   .title-layer .tile-word + .tile-word {
     margin-left: 0.2em;
   }
-}
-
-.title-dim .title-layer,
-[data-theme='light'].title-dim .title-layer {
-  opacity: 0.14;
 }
 
 .scene {
@@ -261,12 +256,12 @@ ul {
 .tile {
   position: relative;
   display: inline-block;
-  margin-right: -0.012em;
+  margin-right: -0.03em;
   padding: 0.06em 0.045em 0.02em;
   background-color: var(--tile-bg);
   background-image: var(--grain);
   color: var(--tile-fg);
-  transform: translate3d(calc(var(--dx) * 1em + var(--vel) * var(--k) * 0.01em), calc(var(--dy) * 1em), 0) rotate(calc(var(--rot) * 1deg));
+  transform: translate3d(0, calc(var(--dy) * 1em), 0);
   transition: background-color 0.5s var(--ease), color 0.5s var(--ease);
 }
 .tile__g {

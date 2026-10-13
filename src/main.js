@@ -40,7 +40,10 @@ function applyTheme(theme, save = false) {
   cloud?.setColor(themeColors[theme].points)
 }
 applyTheme(root.dataset.theme === 'light' ? 'light' : 'dark')
-themeToggle.addEventListener('click', () => applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark', true))
+themeToggle.addEventListener('click', (e) => {
+  applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark', true)
+  if (e.detail) themeToggle.blur() // clic souris : pas de contour de focus persistant
+})
 
 /* ------------------------------------------------------------------
    Rendu
@@ -51,6 +54,7 @@ document.getElementById('title-layer').innerHTML = tiles([first, rest.join(' ')]
   tag: 'div',
   className: 'name-tiles',
   label: site.name,
+  ghost: true,
 })
 
 // les compétences, réparties en lignes qui glissent en sens opposés au scroll
@@ -248,8 +252,6 @@ function updateCloud() {
     const r = s.getBoundingClientRect()
     if (r.top <= mid) section = s
   }
-  // le nom s'efface derrière les textes longs (à propos, contact)
-  root.classList.toggle('title-dim', section.id === 'a-propos' || section.id === 'contact')
   if (!cloud) return
   if (hovered && section !== workSection) setHover(null)
   const key = hovered || section.dataset.cloud
