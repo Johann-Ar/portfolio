@@ -13,6 +13,8 @@ export const DEFAULT_SETTINGS = {
   reflect: 0, // intensité des couleurs du fond reflétées
   contrast: 1, // contraste de l'image affichée
   veil: 0.4, // calque aux couleurs du fond par-dessus l'accueil et le contact
+  veilMode: 'over', // placement du calque : 'front' devant tout, 'over' sur l'image, 'behind' derrière, 'points' seulement les points
+  vignette: 0, // vignettage (bords assombris)
   glassShape: 'logo', // élément 3D de l'accueil : 'logo' ou 'prisms' (comme la référence)
   glassIor: 0.13, // intensité de la réfraction
   glassRough: 0.2, // étalement de la dispersion
@@ -42,7 +44,7 @@ export const PROFILES = {
   project: {
     mode: 1,
     size: 1.27,
-    relief: 0.66,
+    relief: 0.82,
     push: -0.5,
     curve: 0.2,
     opacity: 1.2,

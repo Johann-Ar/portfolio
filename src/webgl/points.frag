@@ -6,6 +6,7 @@ uniform float uGlass;    // effet verre : bille, reflet spéculaire, bord lumine
 uniform float uReflect;  // intensité des couleurs du fond reflétées
 uniform float uLight;
 uniform float uAspect;
+uniform float uVeilTint; // calque couleurs posé uniquement sur les points
 
 // Les couleurs du fond de la page (mêmes positions que le dégradé CSS .backdrop)
 vec3 backdrop(vec2 uv) {
@@ -52,6 +53,9 @@ void main() {
   vec3 rgb = mix(vColor.rgb, tinted, refl);
   rgb += spec * 0.55 * min(uGlass, 2.0) * mix(1.0, 0.6, uLight);
   rgb += fresnel * env * 0.25 * min(uGlass, 2.0);
+  // calque couleurs « seulement sur les points » : teinte de la palette, à la luminosité du point
+  vec3 veilCol = backdrop(vScreen) * (0.35 + 0.9 * max(max(rgb.r, rgb.g), rgb.b));
+  rgb = mix(rgb, veilCol, clamp(uVeilTint, 0.0, 1.0));
 
   // bord lissé sur environ un pixel, quelle que soit la taille du point : disques nets
   float r = sqrt(r2);

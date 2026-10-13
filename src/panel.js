@@ -6,7 +6,7 @@ import { PROFILES, PROFILE_LABELS, profileDefaults } from './webgl/settings.js'
  * celui de la section affichée. Modifications mémorisées dans ce navigateur.
  */
 
-const STORAGE_KEY = 'splat-settings-v2'
+const STORAGE_KEY = 'splat-settings-v3'
 
 const SLIDERS = [
   { key: 'size', label: 'Taille des points', min: 0.2, max: 2.5, step: 0.01 },
@@ -16,6 +16,7 @@ const SLIDERS = [
   { key: 'opacity', label: 'Opacité', min: 0.1, max: 2, step: 0.01 },
   { key: 'contrast', label: 'Contraste', min: 0, max: 3, step: 0.01 },
   { key: 'veil', label: 'Calque couleurs (accueil, contact)', min: 0, max: 1, step: 0.01 },
+  { key: 'vignette', label: 'Vignettage', min: 0, max: 1, step: 0.01 },
   { key: 'glass', label: 'Verre', min: 0, max: 3, step: 0.01 },
   { key: 'reflect', label: 'Reflets du fond', min: 0, max: 4, step: 0.01 },
   { key: 'glassIor', label: 'Verre 3D : réfraction', min: 0, max: 0.6, step: 0.005 },
@@ -95,6 +96,13 @@ export class SplatPanel {
       <div class="splat-panel__row splat-panel__modes" role="group" aria-label="Rendu">
         ${MODES.map((m, i) => `<button type="button" data-mode="${i}">${m}</button>`).join('')}
       </div>
+      <span class="splat-panel__label">Calque couleurs</span>
+      <div class="splat-panel__row splat-panel__modes splat-panel__modes--4" role="group" aria-label="Placement du calque couleurs">
+        <button type="button" data-veil="front" title="Par-dessus tout, textes compris">Devant</button>
+        <button type="button" data-veil="over" title="Sur l'image, sous les textes">Sur l'image</button>
+        <button type="button" data-veil="behind" title="Derrière l'image">Derrière</button>
+        <button type="button" data-veil="points" title="Teinte seulement les points">Points</button>
+      </div>
       <label class="splat-panel__check"><input type="checkbox" data-hero-old /> Ancien rendu de l’accueil (B)</label>
       ${SLIDERS.map(
         (s) => `<label class="splat-panel__slider">
@@ -131,6 +139,13 @@ export class SplatPanel {
         this.#apply('glassShape')
         this.sync()
       }
+      const veil = e.target.closest('[data-veil]')
+      if (veil) {
+        this.settings.veilMode = veil.dataset.veil
+        save(this.profiles)
+        this.#apply('veilMode')
+        this.sync()
+      }
       const volume = e.target.closest('[data-volume]')
       if (volume) this.setVolume(volume.dataset.volume)
     })
@@ -145,7 +160,11 @@ export class SplatPanel {
     const keys = key ? [key] : Object.keys(this.settings)
     for (const k of keys) {
       if (k === 'mode') continue
-      if (k === 'veil') document.documentElement.style.setProperty('--veil', this.settings[k])
+      if (k === 'veil' || k === 'veilMode') {
+        document.documentElement.style.setProperty('--veil', this.settings.veil)
+        document.documentElement.dataset.veil = this.settings.veilMode
+        this.onVeil?.()
+      } else if (k === 'vignette') document.documentElement.style.setProperty('--vignette', this.settings[k])
       else cloud?.set(k, this.settings[k], immediate)
       const input = this.el.querySelector(`[data-key="${k}"]`)
       const s = SLIDERS.find((x) => x.key === k)
@@ -182,6 +201,7 @@ export class SplatPanel {
     const mode = this.getCloud()?.colorMode ?? 0
     this.el.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.mode) === mode)))
     this.el.querySelector('[data-hero-old]').checked = this.getHeroOld()
+    this.el.querySelectorAll('[data-veil]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.veil === this.settings.veilMode)))
     this.el.querySelectorAll('[data-shape]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.shape === this.settings.glassShape)))
     const vol = this.getVolume()
     this.el.querySelectorAll('[data-volume]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.volume === vol)))

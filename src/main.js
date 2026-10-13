@@ -305,6 +305,12 @@ function setHeroOld(v) {
   updateCloud()
   panel.sync()
 }
+/* calque couleurs en mode « points » : appliqué dans le shader (accueil et contact) */
+function updateVeilTint() {
+  const s = panel.settings
+  const on = root.classList.contains('show-veil') && !root.classList.contains('case-open') && s.veilMode === 'points'
+  cloud?.set('veilTint', on ? s.veil : 0)
+}
 const panel = new SplatPanel({
   getCloud: () => cloud,
   onMode: setColorMode,
@@ -313,6 +319,7 @@ const panel = new SplatPanel({
   getVolume: () => volume,
   setVolume,
 })
+panel.onVeil = () => updateVeilTint()
 
 function updateCloud() {
   const vh = window.innerHeight
@@ -324,6 +331,7 @@ function updateCloud() {
   }
   // calque aux couleurs du fond, par-dessus les splats de l'accueil et du contact
   root.classList.toggle('show-veil', section.id === 'top' || section.id === 'contact')
+  updateVeilTint()
   logo?.setProgress(Math.min(heroProgress * 1.8, 1)) // le logo sort avant que le texte ne le croise
   const nowInWork = section === workSection
   if (nowInWork !== inWork) {

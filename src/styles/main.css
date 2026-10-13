@@ -215,6 +215,29 @@ body {
 .show-veil .veil {
   opacity: var(--veil, 0.4);
 }
+/* placement du calque (réglage « Calque couleurs ») */
+[data-veil='front'] .veil {
+  z-index: 60; /* par-dessus tout, textes compris */
+}
+[data-veil='behind'] .veil {
+  z-index: -1; /* derrière l'image, au-dessus du fond */
+}
+[data-veil='points'] .veil {
+  display: none; /* appliqué directement aux points dans le shader */
+}
+
+/* vignettage : bords assombris (s'éclaircissent en thème clair) */
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none; /* sous les textes, au-dessus de l'image */
+  background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 35%, var(--bg) 100%);
+  opacity: var(--vignette, 0);
+  transition: opacity 0.6s var(--ease);
+}
+.case-open .vignette {
+  opacity: 0;
+}
 .case-open .veil {
   opacity: 0;
 }
@@ -1070,6 +1093,14 @@ html.case-open {
 }
 .splat-panel__modes--2 {
   grid-template-columns: repeat(2, 1fr);
+}
+.splat-panel__modes--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+.splat-panel__modes--4 button {
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 0.6rem;
 }
 .splat-panel__status {
   min-height: 0;
