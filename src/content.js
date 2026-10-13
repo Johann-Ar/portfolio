@@ -13,8 +13,9 @@
 export const site = {
   name: 'Johann Arata',
   role: 'Designer numérique',
-  location: 'Auvergne-Rhône-Alpes, France',
+  location: 'France',
   email: 'arata.johann@gmail.com',
+  phone: '+33 7 71 70 25 85',
   intro:
     'Designer numérique. Je transforme des captations réelles en espaces 3D explorables dans le navigateur, avec Three.js et WebGL.',
   socials: [

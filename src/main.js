@@ -8,6 +8,7 @@ import './styles/main.css'
 import Lenis from 'lenis'
 import { site, skills, about, timeline, projects } from './content.js'
 import { CaseView } from './case.js'
+import { SplatPanel } from './panel.js'
 
 const BASE = import.meta.env.BASE_URL
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -120,8 +121,9 @@ app.innerHTML = `
 
   <section class="contact" id="contact" data-cloud="contact" data-cloud-opacity="0.6" aria-labelledby="contact-title">
     <h2 class="section-title section-title--center reveal" id="contact-title">Contact</h2>
-    <p class="contact__text reveal">Un stage, un projet, une question : écrivez-moi.</p>
+    <p class="contact__text reveal">Écrivez-moi.</p>
     <a class="contact__mail reveal" href="mailto:${esc(site.email)}"><span>${esc(site.email)}</span></a>
+    <a class="contact__phone reveal" href="tel:${esc(site.phone.replace(/\s/g, ''))}"><span>${esc(site.phone)}</span></a>
     <ul class="socials reveal">
       ${site.socials
         .map(
@@ -134,7 +136,7 @@ app.innerHTML = `
 
   <footer class="footer">
     <span>© ${new Date().getFullYear()} ${esc(site.name)}</span>
-    <span class="footer__key"><kbd>Espace</kbd> couleurs <kbd>B</kbd> autre rendu de l’accueil</span>
+    <span class="footer__key"><kbd>Espace</kbd> mono / couleur / bleu <kbd>B</kbd> autre rendu <kbd>P</kbd> réglages</span>
     <span>${esc(site.role)} — ${esc(site.location)}</span>
   </footer>
 `
@@ -225,12 +227,15 @@ async function initCloud() {
   cloud.onContextLost = () => root.classList.add('no-webgl')
   // accueil : la photo remplit l'écran et déborde du cadre
   const portrait = `${BASE}media/site/portrait.webp`
-  cloud.register('hero', imageTarget(portrait, { fit: 'cover', overscan: 1.18, depth: 6, focusX: 0.62 }))
+  // accueil et contact : images reculées, bord à bord, profondeur inversée (clair = loin, foncé = proche)
+  const far = { fit: 'cover', distance: 34, depth: 14, invertDepth: true }
+  cloud.register('hero', imageTarget(portrait, { ...far, focusX: 0.6 }))
   // touche B : ancienne version (points répartis selon la lumière), toujours plein écran
-  cloud.register('hero-old-dark', sampledTarget(portrait, { focusX: 0.62 }))
-  cloud.register('hero-old-light', sampledTarget(portrait, { focusX: 0.62, light: true }))
+  cloud.register('hero-old-dark', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6 }))
+  cloud.register('hero-old-light', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6, light: true }))
   // contact : Thomas Gainsborough, « View near King's Bromley-on-Trent » (domaine public)
-  cloud.register('contact', imageTarget(`${BASE}media/site/view-near.webp`, { fit: 'cover', overscan: 1.12, depth: 6 }))
+  cloud.register('contact', imageTarget(`${BASE}media/site/view-near.webp`, far))
+  panel.attach()
   cloud.register('terrain', imageTarget(`${BASE}media/site/terrain-cloud.webp`, { paper: true, size: 0.85, depth: 5 }))
   // projets : les couvertures du portfolio (imprimées sur fond blanc)
   for (const p of projects) cloud.register(p.slug, imageTarget(`${BASE}media/${p.cloud}`, { paper: true, size: 0.5, depth: 6 }))
@@ -245,6 +250,25 @@ const workSection = document.getElementById('projets')
 let selected = projects[0].slug
 let inWork = false
 let heroOld = false // touche B
+
+/* Panneau de réglage des splats (touche P) */
+function setColorMode(mode) {
+  if (!cloud) return
+  const m = cloud.setColorMode(mode)
+  root.dataset.cloudMode = ['mono', 'color', 'blue'][m]
+  panel.sync()
+}
+function setHeroOld(v) {
+  heroOld = v
+  updateCloud()
+  panel.sync()
+}
+const panel = new SplatPanel({
+  getCloud: () => cloud,
+  onMode: setColorMode,
+  getHeroOld: () => heroOld,
+  setHeroOld,
+})
 
 function updateCloud() {
   const vh = window.innerHeight
@@ -330,13 +354,17 @@ stage.addEventListener('pointercancel', endDrag)
 /* Espace : monochrome / couleurs de l'image. B : ancienne version du splat de l'accueil */
 window.addEventListener('keydown', (e) => {
   if (e.repeat || !cloud || caseView.isOpen || e.metaKey || e.ctrlKey || e.altKey) return
+  const inPanel = e.target.closest?.('.splat-panel')
+  if ((e.key === 'p' || e.key === 'P') && (inPanel || !e.target.closest?.('input, textarea, select, [contenteditable]'))) {
+    panel.toggle()
+    return
+  }
   if (e.target.closest?.('input, textarea, select, button, a, [contenteditable]')) return
   if (e.code === 'Space') {
     e.preventDefault()
-    root.classList.toggle('cloud-color', cloud.toggleColorMode())
+    setColorMode(cloud.colorMode + 1) // monochrome -> couleurs -> bleu
   } else if (e.key === 'b' || e.key === 'B') {
-    heroOld = !heroOld
-    updateCloud()
+    setHeroOld(!heroOld)
   }
 })
 

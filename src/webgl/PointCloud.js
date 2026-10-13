@@ -12,13 +12,29 @@ import {
 } from 'three'
 import vertexShader from './points.vert?raw'
 import fragmentShader from './points.frag?raw'
+import { CAM_Z } from './targets.js'
 
 /**
  * Nuage de points plein écran (« splat »).
  * Chaque cible (image) est une grille de points colorés dont la profondeur suit la luminance.
  * On passe d'une cible à l'autre par un morph avec dispersion.
- * Deux rendus : monochrome (blanc / noir selon le thème) ou couleurs de l'image.
+ * Trois rendus (touche Espace) : monochrome (blanc / noir selon le thème),
+ * couleurs de l'image, monochrome bleu (traitement des couvertures de projet).
+ * Les réglages fins (panneau, touche P) passent par `settings` / `set()`.
  */
+
+/** Réglages par défaut du panneau. */
+export const DEFAULT_SETTINGS = {
+  size: 0.92, // taille des points (1 = cellules jointives)
+  relief: 1, // amplitude de la profondeur
+  push: 0, // recul global
+  opacity: 1, // opacité globale
+  mouseRadius: 3.2, // rayon d'action de la souris
+  mouseForce: 1, // force de l'écartement
+  breath: 1, // respiration
+  parallax: 1, // parallaxe à la souris
+  curve: 0.45, // courbure des images plein écran : > 0 concave, < 0 sphérique
+}
 
 const MORPH_DURATION = 1.8
 const DELAY_SPREAD = 0.35
@@ -38,7 +54,7 @@ export class PointCloud {
     this.renderer.setClearColor(0x000000, 0)
     this.scene = new Scene()
     this.camera = new PerspectiveCamera(35, 1, 0.1, 200)
-    this.camera.position.set(0, 0, 30)
+    this.camera.position.set(0, 0, CAM_Z)
 
     this.targets = new Map()
     this.pending = new Map()
@@ -54,7 +70,9 @@ export class PointCloud {
     this.scrollTarget = 0
     this.opacityTarget = 1
     this.offsetTarget = 0
-    this.colorTarget = 0
+    this.colorMode = 0 // 0 monochrome, 1 couleurs, 2 bleu
+    this.mix = { color: 0, blue: 0 }
+    this.settings = { ...DEFAULT_SETTINGS }
 
     this.#build(color, light)
     this.resize()
@@ -89,6 +107,8 @@ export class PointCloud {
       colTo: new Float32Array(n * 4),
       toneFrom: new Float32Array(n * 2),
       toneTo: new Float32Array(n * 2),
+      offFrom: new Float32Array(n),
+      offTo: new Float32Array(n),
     }
     const rand = new Float32Array(n * 4)
     for (let i = 0; i < n * 4; i++) rand[i] = Math.random()
@@ -111,6 +131,8 @@ export class PointCloud {
     geo.setAttribute('aColTo', new BufferAttribute(this.buf.colTo, 4))
     geo.setAttribute('aToneFrom', new BufferAttribute(this.buf.toneFrom, 2))
     geo.setAttribute('aToneTo', new BufferAttribute(this.buf.toneTo, 2))
+    geo.setAttribute('aOffFrom', new BufferAttribute(this.buf.offFrom, 1))
+    geo.setAttribute('aOffTo', new BufferAttribute(this.buf.offTo, 1))
     geo.setAttribute('aRand', new BufferAttribute(rand, 4))
 
     this.uniforms = {
@@ -122,9 +144,18 @@ export class PointCloud {
       uMouseRadius: { value: this.isSmall ? 2.2 : 3.2 },
       uColor: { value: new Color(color) },
       uLight: { value: light ? 1 : 0 },
-      uColorMode: { value: 0 },
+      uColorMix: { value: 0 },
+      uBlueMix: { value: 0 },
       uOpacity: { value: 1 },
-      uSizeFactor: { value: 0.92 },
+      uOpacityMul: { value: 1 },
+      uSizeFactor: { value: DEFAULT_SETTINGS.size },
+      uDepthScale: { value: 1 },
+      uPush: { value: 0 },
+      uMouseForce: { value: 1 },
+      uBreath: { value: 1 },
+      uCamZ: { value: CAM_Z },
+      uCurve: { value: DEFAULT_SETTINGS.curve },
+      uViewH: { value: 1 },
       uScreenScale: { value: 1 },
       uMotion: { value: this.reducedMotion ? 0 : 1 },
     }
@@ -156,6 +187,7 @@ export class PointCloud {
     this.renderer.setSize(w, h, false)
     this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
+    this.uniforms.uViewH.value = this.viewSize.h
     // pixels écran par unité monde à distance 1 : une cellule de la grille couvre exactement sa place
     this.uniforms.uScreenScale.value = (h * dpr) / (2 * Math.tan((this.camera.fov * Math.PI) / 360))
 
@@ -169,7 +201,16 @@ export class PointCloud {
     }
   }
 
-  /** Enregistre une cible : fonction asynchrone (count, view, isSmall) -> { pos, col, tone }. */
+  /** Applique un réglage du panneau. */
+  set(name, value) {
+    this.settings[name] = value
+    const u = this.uniforms
+    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve' }
+    if (map[name]) u[map[name]].value = value
+    if (name === 'mouseRadius') u.uMouseRadius.value = value * (this.isSmall ? 0.7 : 1)
+  }
+
+  /** Enregistre une cible : fonction asynchrone (count, view, isSmall) -> { pos, col, tone, off }. */
   register(key, factory) {
     this.pending.set(key, factory)
   }
@@ -198,6 +239,7 @@ export class PointCloud {
       b.from.set(data.pos)
       b.colFrom.set(data.col)
       b.toneFrom.set(data.tone)
+      b.offFrom.set(data.off)
       this.progress = 1
     } else {
       this.#snapshot()
@@ -206,22 +248,24 @@ export class PointCloud {
     b.to.set(data.pos)
     b.colTo.set(data.col)
     b.toneTo.set(data.tone)
+    b.offTo.set(data.off)
     this.currentKey = key
     this.userRot.vx = this.userRot.vy = 0
 
     const a = this.points.geometry.attributes
-    for (const name of ['aFrom', 'aTo', 'aColFrom', 'aColTo', 'aToneFrom', 'aToneTo']) a[name].needsUpdate = true
+    for (const name of ['aFrom', 'aTo', 'aColFrom', 'aColTo', 'aToneFrom', 'aToneTo', 'aOffFrom', 'aOffTo']) a[name].needsUpdate = true
   }
 
   /** Fige l'état courant (même calcul que le shader) dans `from`, pour enchaîner sans saut. */
   #snapshot() {
-    const { from, to, colFrom, colTo, toneFrom, toneTo } = this.buf
+    const { from, to, colFrom, colTo, toneFrom, toneTo, offFrom, offTo } = this.buf
     const rand = this.rand
     const p = this.progress
     if (p >= 1) {
       from.set(to)
       colFrom.set(colTo)
       toneFrom.set(toneTo)
+      offFrom.set(offTo)
       return
     }
     for (let i = 0; i < this.count; i++) {
@@ -236,6 +280,7 @@ export class PointCloud {
       for (let c = 0; c < 4; c++) colFrom[o + c] += (colTo[o + c] - colFrom[o + c]) * m
       toneFrom[i * 2] += (toneTo[i * 2] - toneFrom[i * 2]) * m
       toneFrom[i * 2 + 1] += (toneTo[i * 2 + 1] - toneFrom[i * 2 + 1]) * m
+      offFrom[i] += (offTo[i] - offFrom[i]) * m
     }
   }
 
@@ -258,10 +303,14 @@ export class PointCloud {
     this.uniforms.uLight.value = light ? 1 : 0
   }
 
-  /** Bascule monochrome / couleurs de l'image. */
-  toggleColorMode() {
-    this.colorTarget = this.colorTarget ? 0 : 1
-    return !!this.colorTarget
+  /** Mode de couleur : 0 monochrome, 1 couleurs de l'image, 2 monochrome bleu. */
+  setColorMode(mode) {
+    this.colorMode = ((mode % 3) + 3) % 3
+    return this.colorMode
+  }
+
+  cycleColorMode() {
+    return this.setColorMode(this.colorMode + 1)
   }
 
   setScroll(v) {
@@ -303,7 +352,8 @@ export class PointCloud {
     const k = 1 - Math.pow(0.001, dt)
     u.uScroll.value += (this.scrollTarget - u.uScroll.value) * k
     u.uOpacity.value += (this.opacityTarget - u.uOpacity.value) * k
-    u.uColorMode.value += (this.colorTarget - u.uColorMode.value) * k
+    u.uColorMix.value += ((this.colorMode === 1 ? 1 : 0) - u.uColorMix.value) * k
+    u.uBlueMix.value += ((this.colorMode === 2 ? 1 : 0) - u.uBlueMix.value) * k
     const ox = this.offsetTarget * this.viewSize.w
     this.points.position.x += (ox - this.points.position.x) * (1 - Math.pow(0.02, dt))
 
@@ -321,8 +371,9 @@ export class PointCloud {
         r.x *= Math.pow(0.5, dt)
         r.y *= Math.pow(0.5, dt)
       }
-      this.points.rotation.y = this.parallax.x * 0.08 + r.y
-      this.points.rotation.x = -this.parallax.y * 0.05 + r.x
+      const px = this.settings.parallax
+      this.points.rotation.y = this.parallax.x * 0.08 * px + r.y
+      this.points.rotation.x = -this.parallax.y * 0.05 * px + r.x
     }
 
     this.renderer.render(this.scene, this.camera)

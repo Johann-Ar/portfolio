@@ -33,12 +33,11 @@
   --media-bg: #16151b;
   --blend: normal;
   --backdrop:
-    radial-gradient(ellipse 50% 45% at 0% 0%, rgb(255 152 229 / 0.2), transparent 70%),
-    radial-gradient(ellipse 45% 40% at 50% -8%, rgb(178 163 233 / 0.15), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 100% 0%, rgb(178 163 233 / 0.2), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 100% 100%, rgb(152 221 190 / 0.2), transparent 70%),
-    radial-gradient(ellipse 45% 40% at 50% 108%, rgb(152 221 190 / 0.15), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 0% 100%, rgb(247 153 171 / 0.2), transparent 70%),
+    radial-gradient(ellipse 70% 60% at 12% 18%, rgb(255 152 229 / 0.16), transparent 72%),
+    radial-gradient(ellipse 65% 60% at 88% 14%, rgb(178 163 233 / 0.16), transparent 72%),
+    radial-gradient(ellipse 70% 60% at 84% 86%, rgb(152 221 190 / 0.16), transparent 72%),
+    radial-gradient(ellipse 65% 60% at 14% 88%, rgb(247 153 171 / 0.16), transparent 72%),
+    radial-gradient(ellipse 55% 50% at 50% 50%, rgb(178 163 233 / 0.16), transparent 75%),
     #050407;
   color-scheme: dark;
 }
@@ -55,12 +54,11 @@
   --media-bg: #ececec;
   --blend: normal;
   --backdrop:
-    radial-gradient(ellipse 50% 45% at 0% 0%, rgb(255 152 229 / 0.45), transparent 70%),
-    radial-gradient(ellipse 45% 40% at 50% -8%, rgb(178 163 233 / 0.35), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 100% 0%, rgb(178 163 233 / 0.45), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 100% 100%, rgb(152 221 190 / 0.45), transparent 70%),
-    radial-gradient(ellipse 45% 40% at 50% 108%, rgb(152 221 190 / 0.35), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 0% 100%, rgb(247 153 171 / 0.45), transparent 70%),
+    radial-gradient(ellipse 70% 60% at 12% 18%, rgb(255 152 229 / 0.42), transparent 72%),
+    radial-gradient(ellipse 65% 60% at 88% 14%, rgb(178 163 233 / 0.42), transparent 72%),
+    radial-gradient(ellipse 70% 60% at 84% 86%, rgb(152 221 190 / 0.42), transparent 72%),
+    radial-gradient(ellipse 65% 60% at 14% 88%, rgb(247 153 171 / 0.42), transparent 72%),
+    radial-gradient(ellipse 55% 50% at 50% 50%, rgb(178 163 233 / 0.42), transparent 75%),
     #ffffff;
   color-scheme: light;
 }
@@ -183,8 +181,12 @@ ul {
 .backdrop {
   position: fixed;
   inset: 0;
+  z-index: -1; /* tout au fond : n'interagit avec aucun autre élément */
   background: var(--backdrop);
   pointer-events: none;
+}
+body {
+  isolation: isolate;
 }
 
 .scene {
@@ -228,8 +230,8 @@ ul {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #fff;
-  mix-blend-mode: difference; /* reste lisible sur la photo comme sur le fond */
+  color: var(--fg);
+  text-shadow: 0 0 14px var(--bg);
   transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
 }
 .case-open .topbar {
@@ -538,18 +540,23 @@ ul {
   text-align: center;
 }
 .contact__text {
-  margin-top: 2rem;
-  font-size: 1rem;
+  margin-top: 1.6rem;
+  font-size: 1.15rem;
   font-weight: 600;
-  text-transform: uppercase;
-  color: var(--muted);
+  color: var(--fg);
 }
 .contact__mail {
   margin-top: 1.2rem;
   font-size: clamp(1.2rem, 3.2vw, 2.6rem);
   font-weight: 600;
 }
+.contact__phone {
+  margin-top: 0.6rem;
+  font-size: clamp(1rem, 2vw, 1.6rem);
+  font-weight: 600;
+}
 .contact__mail,
+.contact__phone,
 .case__link {
   position: relative;
   display: inline-block;
@@ -560,12 +567,14 @@ ul {
   vertical-align: bottom;
 }
 .contact__mail span,
+.contact__phone span,
 .case__link span {
   position: relative;
   z-index: 1;
   transition: color 0.2s var(--ease);
 }
 .contact__mail::before,
+.contact__phone::before,
 .case__link::before {
   content: '';
   position: absolute;
@@ -576,12 +585,16 @@ ul {
 }
 .contact__mail:hover::before,
 .contact__mail:focus-visible::before,
+.contact__phone:hover::before,
+.contact__phone:focus-visible::before,
 .case__link:hover::before,
 .case__link:focus-visible::before {
   transform: translateX(0);
 }
 .contact__mail:hover span,
 .contact__mail:focus-visible span,
+.contact__phone:hover span,
+.contact__phone:focus-visible span,
 .case__link:hover span,
 .case__link:focus-visible span {
   color: var(--bg);
@@ -972,4 +985,96 @@ html.case-open {
 
 [data-theme='light'] .contact {
   text-shadow: 0 0 22px rgb(255 255 255 / 0.8);
+}
+
+/* ---------- Panneau de réglage des splats (touche P) ---------- */
+
+.splat-panel {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 250;
+  width: 280px;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.25);
+}
+.splat-panel[hidden] {
+  display: none;
+}
+.splat-panel__head,
+.splat-panel__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.splat-panel__head button {
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 4px;
+}
+.splat-panel__modes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin: 12px 0 10px;
+}
+.splat-panel__modes button,
+.splat-panel__foot button {
+  padding: 6px 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  text-transform: inherit;
+}
+.splat-panel__modes button[aria-pressed='true'] {
+  background: var(--fg);
+  color: var(--bg);
+}
+.splat-panel__check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.splat-panel__slider {
+  display: block;
+  margin-top: 8px;
+}
+.splat-panel__slider span {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+}
+.splat-panel__slider output {
+  color: var(--fg);
+}
+.splat-panel input[type='range'] {
+  width: 100%;
+  margin-top: 4px;
+  accent-color: var(--fg);
+}
+.splat-panel__foot {
+  margin-top: 12px;
+  color: var(--muted);
+}
+.splat-panel__foot button {
+  padding: 5px 10px;
+  color: var(--fg);
+}
+.splat-panel kbd {
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font: inherit;
 }

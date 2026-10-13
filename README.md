@@ -6,11 +6,13 @@ Vite + Three.js (nuage de points WebGL) + Lenis (smooth scroll), sans framework.
 Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiches projet reprennent sa composition
 (défilement vertical qui fait glisser un bloc horizontal : texte + infos, puis images de 100 % de hauteur).
 - « splat » : chaque image devient une grille de points (un par pixel échantillonné), avec sa couleur ;
-  **la luminance détermine la profondeur**. Touche **Espace** : monochrome / couleurs de l'image ; touche **B** : ancienne version du splat de l'accueil (points répartis selon la lumière) ;
+  **la luminance détermine la profondeur**. Touche **Espace** : monochrome → couleurs → monochrome bleu ; **B** : ancien rendu de l'accueil ; **P** : panneau de réglages
+  (taille des points, relief, distance, courbure, opacité, souris, respiration, parallaxe — mémorisés dans le navigateur) ;
+- accueil et contact : images reculées, bord à bord, profondeur inversée (clair = loin), courbure concave réglable ;
 - accueil : photo plein écran qui déborde du cadre ; section Projets : couverture du projet survolé,
   rotation limitée au glisser ;
 - fiches projet : petites images regroupées par deux (bento) ; au bout, continuer à défiler ouvre le projet suivant ;
-- thème sombre par défaut, thème clair noir et blanc ; halos de la palette du site sur tout le pourtour
+- thème sombre par défaut, thème clair noir et blanc ; fond en dégradé de la palette du site, derrière tout
   (rose bonbon `#FF98E5`, bleu lavande `#B2A3E9`, vert menthe `#98DDBE`, rose corail `#F799AB`) ;
 - contact : splat du tableau de Thomas Gainsborough, *View near King's Bromley-on-Trent* ;
 - typos libres : Instrument Serif (titres), Figtree (texte), IBM Plex Mono (étiquettes).
