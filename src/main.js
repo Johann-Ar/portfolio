@@ -340,8 +340,8 @@ function updateCloud() {
   for (const s of sections) {
     if (s.getBoundingClientRect().top <= mid) section = s
   }
-  // calque aux couleurs du fond, par-dessus les splats de l'accueil et du contact
-  root.classList.toggle('show-veil', section.id === 'top' || section.id === 'contact')
+  // calque aux couleurs du fond : sur toutes les sections qui affichent une image (accueil, projets, contact)
+  root.classList.toggle('show-veil', section.dataset.cloud !== 'none')
   updateVeilTint()
   logo?.setProgress(Math.min(heroProgress * 1.8, 1)) // le logo sort avant que le texte ne le croise
   const nowInWork = section === workSection

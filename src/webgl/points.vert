@@ -117,15 +117,17 @@ void main() {
     col.rgb = clamp(col.rgb + dc, 0.0, 1.0);
     float dl = dot(dc, vec3(0.2126, 0.7152, 0.0722)) * uToneGain;
     toneRaw += vec2(aUv.z, aUv.z == 0.0 ? 0.0 : -1.0) * dl;
+    // couvertures de projet (papier transparent, seule l'encre est visible) : la fumée déplace aussi l'encre
+    col.a = clamp(col.a - step(aUv.z, -0.5) * dl, 0.0, 1.0);
   }
   vec2 tone = clamp((toneRaw - 0.5) * uContrast + 0.5, 0.0, 1.0);
   float baseOff = mix(aOffFrom, aOffTo, m);
   float off = baseOff + uPush;
 
-  // courbure : l'image n'est plus un plan parallèle à l'écran (seulement les images reculées)
+  // courbure : l'image n'est plus un plan parallèle à l'écran (toutes les images, projets compris)
   float scaleAtDepth = (uCamZ + baseOff) / uCamZ;
   vec2 q = pos.xy / (uViewH * 0.5 * scaleAtDepth);
-  pos.z += uCurve * dot(q, q) * 12.0 * scaleAtDepth * step(0.5, baseOff);
+  pos.z += uCurve * dot(q, q) * 12.0 * scaleAtDepth;
 
   // légère respiration
   float t = uTime * 0.5;
