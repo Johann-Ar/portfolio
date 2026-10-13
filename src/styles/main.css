@@ -204,11 +204,12 @@ body {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 70% 60% at 12% 18%, rgb(255 152 229 / 0.9), transparent 72%),
-    radial-gradient(ellipse 65% 60% at 88% 14%, rgb(178 163 233 / 0.9), transparent 72%),
-    radial-gradient(ellipse 70% 60% at 84% 86%, rgb(152 221 190 / 0.9), transparent 72%),
-    radial-gradient(ellipse 65% 60% at 14% 88%, rgb(247 153 171 / 0.9), transparent 72%),
-    radial-gradient(ellipse 55% 50% at 50% 50%, rgb(178 163 233 / 0.7), transparent 75%);
+    /* RVB : rouge, vert, bleu */
+    radial-gradient(ellipse 70% 60% at 12% 18%, rgb(255 0 0 / 0.9), transparent 72%),
+    radial-gradient(ellipse 65% 60% at 88% 14%, rgb(0 0 255 / 0.9), transparent 72%),
+    radial-gradient(ellipse 70% 60% at 84% 86%, rgb(0 255 0 / 0.9), transparent 72%),
+    radial-gradient(ellipse 65% 60% at 14% 88%, rgb(255 0 0 / 0.9), transparent 72%),
+    radial-gradient(ellipse 55% 50% at 50% 50%, rgb(0 0 255 / 0.7), transparent 75%);
   opacity: 0;
   transition: opacity 0.8s var(--ease);
 }
@@ -231,7 +232,10 @@ body {
   position: fixed;
   inset: 0;
   pointer-events: none; /* sous les textes, au-dessus de l'image */
-  background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 35%, var(--bg) 100%);
+  /* vignettage plus marqué : le noir gagne dès la moitié de l'écran */
+  background:
+    radial-gradient(ellipse 62% 58% at 50% 50%, transparent 30%, color-mix(in srgb, var(--bg) 55%, transparent) 62%, var(--bg) 92%),
+    radial-gradient(ellipse 90% 85% at 50% 50%, transparent 55%, var(--bg) 100%);
   opacity: var(--vignette, 0);
   transition: opacity 0.6s var(--ease);
 }

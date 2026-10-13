@@ -14,11 +14,12 @@ vec3 backdrop(vec2 uv) {
   vec3 c[5];
   vec2 at[5];
   vec2 r[5];
-  c[0] = vec3(1.0, 0.596, 0.898);   at[0] = vec2(0.12, 0.18); r[0] = vec2(0.70, 0.60); // rose bonbon
-  c[1] = vec3(0.698, 0.639, 0.914); at[1] = vec2(0.88, 0.14); r[1] = vec2(0.65, 0.60); // bleu lavande
-  c[2] = vec3(0.596, 0.867, 0.745); at[2] = vec2(0.84, 0.86); r[2] = vec2(0.70, 0.60); // vert menthe
-  c[3] = vec3(0.969, 0.600, 0.671); at[3] = vec2(0.14, 0.88); r[3] = vec2(0.65, 0.60); // rose corail
-  c[4] = vec3(0.698, 0.639, 0.914); at[4] = vec2(0.50, 0.50); r[4] = vec2(0.55, 0.50); // bleu lavande
+  // RVB (mêmes positions que le calque .veil)
+  c[0] = vec3(1.0, 0.0, 0.0); at[0] = vec2(0.12, 0.18); r[0] = vec2(0.70, 0.60); // rouge
+  c[1] = vec3(0.0, 0.0, 1.0); at[1] = vec2(0.88, 0.14); r[1] = vec2(0.65, 0.60); // bleu
+  c[2] = vec3(0.0, 1.0, 0.0); at[2] = vec2(0.84, 0.86); r[2] = vec2(0.70, 0.60); // vert
+  c[3] = vec3(1.0, 0.0, 0.0); at[3] = vec2(0.14, 0.88); r[3] = vec2(0.65, 0.60); // rouge
+  c[4] = vec3(0.0, 0.0, 1.0); at[4] = vec2(0.50, 0.50); r[4] = vec2(0.55, 0.50); // bleu
   vec3 sum = vec3(0.0);
   float wsum = 0.0;
   for (int i = 0; i < 5; i++) {
