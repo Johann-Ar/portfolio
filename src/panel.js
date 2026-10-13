@@ -6,7 +6,7 @@ import { PROFILES, PROFILE_LABELS, profileDefaults } from './webgl/settings.js'
  * celui de la section affichée. Modifications mémorisées dans ce navigateur.
  */
 
-const STORAGE_KEY = 'splat-settings-v9'
+const STORAGE_KEY = 'splat-settings-v10'
 
 const SLIDERS = [
   { key: 'size', label: 'Taille des points', min: 0.2, max: 2.5, step: 0.01 },
@@ -17,8 +17,9 @@ const SLIDERS = [
   { key: 'contrast', label: 'Contraste', min: 0, max: 3, step: 0.01 },
   { key: 'veil', label: 'Calque couleurs (accueil, contact)', min: 0, max: 1, step: 0.01 },
   { key: 'vignette', label: 'Vignettage', min: 0, max: 1, step: 0.01 },
-  { key: 'anim', label: 'Animation de l’image', min: 0, max: 3, step: 0.01 },
-  { key: 'animSpeed', label: 'Animation : vitesse', min: 0, max: 5, step: 0.05 },
+  { key: 'anim', label: 'Fumée', min: 0, max: 3, step: 0.01 },
+  { key: 'animSpeed', label: 'Fumée : vitesse', min: 0, max: 5, step: 0.05 },
+  { key: 'smokeHover', label: 'Fumée au survol', min: 0, max: 4, step: 0.05 },
   { key: 'rgb', label: 'Pixels RVB (OLED)', min: 0, max: 1, step: 0.01 },
   { key: 'rgbGlow', label: 'Pixels RVB : halo', min: 0, max: 2, step: 0.01 },
   { key: 'glass', label: 'Verre', min: 0, max: 3, step: 0.01 },
@@ -92,7 +93,8 @@ export class SplatPanel {
       </div>
       <p class="splat-panel__status" data-status></p>
       <span class="splat-panel__label">Élément 3D</span>
-      <div class="splat-panel__row splat-panel__modes splat-panel__modes--2" role="group" aria-label="Élément 3D">
+      <div class="splat-panel__row splat-panel__modes" role="group" aria-label="Élément 3D">
+        <button type="button" data-shape="none">Caché</button>
         <button type="button" data-shape="logo">Logo</button>
         <button type="button" data-shape="prisms">Prismes (réf.)</button>
       </div>

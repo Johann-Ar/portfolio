@@ -299,7 +299,7 @@ export class GlassElement {
       m.geometry.dispose()
     }
     this.meshes = []
-    const parts = shape === 'prisms' ? prismParts() : logoParts()
+    const parts = shape === 'none' ? [] : shape === 'prisms' ? prismParts() : logoParts()
     for (const part of parts) {
       const mesh = new Mesh(part.geometry, this.material)
       mesh.rotation.order = 'ZYX' // la rotation y se fait autour de l'axe long de la barre
@@ -344,7 +344,7 @@ export class GlassElement {
     const fit = Math.min(view.h * k * 0.55, view.w * k * (small ? 0.62 : 0.45))
     this.root.scale.setScalar(fit * (prisms ? 0.75 : 1) * (1 - ease * 0.35))
     this.root.position.y = view.h * k * (0.04 + ease * 0.55)
-    this.root.visible = p < 0.98
+    this.root.visible = p < 0.98 && this.meshes.length > 0
 
     // l'ensemble suit le curseur (amorti), comme sur la référence
     this.damped.lerp(this.mouse, 1 - Math.pow(0.04, dt))

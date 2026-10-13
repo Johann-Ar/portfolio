@@ -14,15 +14,6 @@ uniform float uAnim;       // animation de l'image (0 : figée)
 uniform float uAnimSpeed;
 uniform float uToneGain;
 
-// mouvement lent de l'image sous la grille : zoom qui respire, dérive, frémissement de lumière
-vec2 animUv(vec2 uv, float t) {
-  vec2 c = uv - 0.5;
-  c /= 1.0 + 0.035 * sin(t * 0.21);
-  c += 0.012 * vec2(sin(t * 0.13), cos(t * 0.17));
-  c += 0.0035 * vec2(sin(uv.y * 22.0 + t * 1.3), cos(uv.x * 18.0 + t * 1.1));
-  return c + 0.5;
-}
-
 uniform float uTime;
 uniform float uMix;
 uniform float uDelaySpread;
@@ -52,6 +43,43 @@ varying vec2 vScreen;
 varying float vSize; // taille du point en pixels
 varying vec2 vCell; // case de la grille d'origine (motif de sous-pixels) // position à l'écran (0 à 1), pour lire les couleurs du fond
 
+uniform float uSmokeHover; // fumée renforcée sous la souris
+uniform float uAspectRatio;
+
+// ---- fumée : bruit de valeur 3D + fbm + déformation de domaine (domain warping) ----
+float hash13(vec3 p) {
+  p = fract(p * 0.1031);
+  p += dot(p, p.zyx + 31.32);
+  return fract((p.x + p.y) * p.z);
+}
+float vnoise(vec3 p) {
+  vec3 i = floor(p);
+  vec3 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(mix(hash13(i), hash13(i + vec3(1, 0, 0)), f.x), mix(hash13(i + vec3(0, 1, 0)), hash13(i + vec3(1, 1, 0)), f.x), f.y),
+    mix(mix(hash13(i + vec3(0, 0, 1)), hash13(i + vec3(1, 0, 1)), f.x), mix(hash13(i + vec3(0, 1, 1)), hash13(i + vec3(1, 1, 1)), f.x), f.y),
+    f.z);
+}
+float fbm(vec3 p) {
+  float v = 0.0;
+  float a = 0.5;
+  for (int i = 0; i < 4; i++) {
+    v += a * vnoise(p);
+    p = p * 2.03 + vec3(1.7, 9.2, 3.1);
+    a *= 0.5;
+  }
+  return v;
+}
+// renvoie la position déformée (xy) et la densité de fumée (z)
+vec3 smoke(vec2 uv, float t) {
+  vec2 p = uv * vec2(uAspectRatio, 1.0) * 2.2;
+  vec2 q = vec2(fbm(vec3(p, t * 0.06)), fbm(vec3(p + vec2(5.2, 1.3), t * 0.06)));
+  vec2 r = vec2(fbm(vec3(p + 3.5 * q + vec2(1.7, 9.2), t * 0.09)), fbm(vec3(p + 3.5 * q + vec2(8.3, 2.8), t * 0.09)));
+  float dens = fbm(vec3(p + 3.0 * r, t * 0.05));
+  return vec3(r - 0.5, dens);
+}
+
 float easeInOutCubic(float t) {
   return t < 0.5 ? 4.0 * t * t * t : 1.0 - pow(-2.0 * t + 2.0, 3.0) / 2.0;
 }
@@ -69,12 +97,21 @@ void main() {
   vec4 col = mix(aColFrom, aColTo, m);
   col.rgb = clamp((col.rgb - 0.5) * uContrast + 0.5, 0.0, 1.0);
   vec2 toneRaw = mix(aToneFrom, aToneTo, m);
-  // animation de l'image : les points restent fixes, c'est l'image qui bouge dessous
-  if (uAnim > 0.001 && aColTo.a > 0.0) {
+  // fumée : les points restent fixes, l'image se déforme en volutes dessous ; plus forte sous la souris
+  float baseOffEarly = mix(aOffFrom, aOffTo, m);
+  float kEarly = (uCamZ + baseOffEarly + uPush) / uCamZ;
+  float hoverF = smoothstep(uMouseRadius * 1.6 * kEarly, 0.0, length(pos.xy - uMouse.xy * kEarly)) * uMotion;
+  float amt = uAnim + hoverF * uSmokeHover;
+  if (amt > 0.001 && aColTo.a > 0.0) {
     float ta = uTime * uAnimSpeed;
-    vec3 c0 = texture2D(uImage, aUv.xy).rgb;
-    vec3 c1 = texture2D(uImage, clamp(animUv(aUv.xy, ta), 0.001, 0.999)).rgb;
-    vec3 dc = (c1 - c0) * uAnim * m;
+    vec4 c0 = texture2D(uImage, aUv.xy);
+    vec3 sm = smoke(aUv.xy, ta + hoverF * 2.0);
+    vec2 wuv = clamp(aUv.xy + sm.xy * 0.045 * amt, 0.001, 0.999);
+    vec3 c1 = texture2D(uImage, wuv).rgb;
+    // densité : voile lumineux qui épouse les zones claires (nuage), creux dans les zones sombres
+    float lum1 = dot(c1, vec3(0.2126, 0.7152, 0.0722));
+    c1 += (sm.z - 0.5) * 0.35 * amt * (0.25 + lum1);
+    vec3 dc = (c1 - c0.rgb) * min(amt, 1.6) * m * c0.a; // le logo (alpha 0) reste net
     col.rgb = clamp(col.rgb + dc, 0.0, 1.0);
     float dl = dot(dc, vec3(0.2126, 0.7152, 0.0722)) * uToneGain;
     toneRaw += vec2(aUv.z, aUv.z == 0.0 ? 0.0 : -1.0) * dl;

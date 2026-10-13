@@ -55,11 +55,20 @@ const luma = (r, g, b) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
  * focusX  point de l'image (0 à 1) placé au centre sur mobile en mode cover
  * distance recul de l'image : plus loin de la caméra, agrandie pour rester bord à bord
  * invertDepth  les pixels clairs partent au loin, les foncés viennent devant
+ * overlay  logo incrusté en volume : { layer, height, cx, cy, h, lift }
+ *          (calque ombré RGBA, carte de hauteur, centre et hauteur en fraction de l'image, relief)
  */
-export function imageTarget(src, { fit = 'contain', size = 0.5, mobileSize = 0.92, overscan = 1.03, paper = false, depth = 5, focusX = 0.5, distance = 0, invertDepth = false } = {}) {
+export function imageTarget(src, { fit = 'contain', size = 0.5, mobileSize = 0.92, overscan = 1.03, paper = false, depth = 5, focusX = 0.5, distance = 0, invertDepth = false, overlay = null } = {}) {
   return async (count, view0, isSmall) => {
     const view = viewAt(view0, distance)
     const img = await loadImage(src)
+    const ov = overlay ? await Promise.all([loadImage(overlay.layer), loadImage(overlay.height)]) : null
+    // rectangle du logo dans un repère de taille (w, h)
+    const ovRect = (w, h) => {
+      const lh = overlay.h * h
+      const lw = lh * (ov[0].naturalWidth / ov[0].naturalHeight)
+      return [overlay.cx * w - lw / 2, overlay.cy * h - lh / 2, lw, lh]
+    }
     const ratio = img.naturalWidth / img.naturalHeight
 
     // grille la plus fine possible avec le budget de points
@@ -70,6 +79,26 @@ export function imageTarget(src, { fit = 'contain', size = 0.5, mobileSize = 0.9
     const ctx = canvas2d(gw, gh)
     ctx.imageSmoothingQuality = 'high'
     ctx.drawImage(img, 0, 0, gw, gh)
+    // logo : couleur incrustée + masque + hauteur, à la résolution de la grille
+    let ovAlpha = null
+    let ovHeight = null
+    if (ov) {
+      const r = ovRect(gw, gh)
+      ctx.drawImage(ov[0], ...r)
+      const m = canvas2d(gw, gh)
+      m.drawImage(ov[0], ...r)
+      const md = m.getImageData(0, 0, gw, gh).data
+      const hc = canvas2d(gw, gh)
+      hc.imageSmoothingQuality = 'high'
+      hc.drawImage(ov[1], ...r)
+      const hd = hc.getImageData(0, 0, gw, gh).data
+      ovAlpha = new Float32Array(gw * gh)
+      ovHeight = new Float32Array(gw * gh)
+      for (let i = 0; i < gw * gh; i++) {
+        ovAlpha[i] = md[i * 4 + 3] / 255
+        ovHeight[i] = hd[i * 4] / 255
+      }
+    }
     const data = ctx.getImageData(0, 0, gw, gh).data
 
     // profondeur lissée : des surfaces continues plutôt qu'un bruit de pixels
@@ -125,6 +154,10 @@ export function imageTarget(src, { fit = 'contain', size = 0.5, mobileSize = 0.9
         uv[k * 3 + 1] = 1 - (j + 0.5) / gh
         uv[k * 3 + 2] = paper ? -1 : 1
         pos[d + 2] = (invertDepth ? 0.5 - z : z - 0.5) * depth
+        if (ovAlpha && ovAlpha[k] > 0) {
+          // le logo ressort en volume devant l'image (relief en tube)
+          pos[d + 2] += ovAlpha[k] * (overlay.lift * (0.35 + 0.65 * ovHeight[k]))
+        }
         pos[d + 3] = cell
 
         col[d] = data[d] / 255
@@ -150,7 +183,16 @@ export function imageTarget(src, { fit = 'contain', size = 0.5, mobileSize = 0.9
       pos.set(pos.subarray(from, from + 4), k * 4)
     }
 
-    return { pos, col, tone, off, uv, image: img, toneGain: 1 / span }
+    // texture animée (fumée) : sans le logo, qui reste net (alpha = 1 - logo)
+    let image = img
+    if (ov) {
+      const full = canvas2d(img.naturalWidth, img.naturalHeight)
+      full.drawImage(img, 0, 0)
+      full.globalCompositeOperation = 'destination-out'
+      full.drawImage(ov[0], ...ovRect(img.naturalWidth, img.naturalHeight))
+      image = full.canvas
+    }
+    return { pos, col, tone, off, uv, image, toneGain: 1 / span }
   }
 }
 

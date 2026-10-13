@@ -7,7 +7,7 @@ export const DEFAULT_SETTINGS = {
   mouseRadius: 5.1, // rayon d'action de la souris
   mouseForce: 1.05, // force de l'écartement
   breath: 0, // respiration
-  parallax: 1.05, // parallaxe à la souris
+  parallax: 0.15, // parallaxe à la souris
   curve: 0.46, // courbure des images plein écran : > 0 concave, < 0 sphérique
   glass: 0, // effet verre (bille, reflet, bord lumineux)
   reflect: 0, // intensité des couleurs du fond reflétées
@@ -15,11 +15,12 @@ export const DEFAULT_SETTINGS = {
   veil: 0.4, // calque aux couleurs du fond par-dessus l'accueil et le contact
   veilMode: 'over', // placement du calque : 'front' devant tout, 'over' sur l'image, 'behind' derrière, 'points' seulement les points
   vignette: 0, // vignettage (bords assombris)
-  anim: 0.8, // animation de l'image affichée (les points restent fixes)
+  anim: 0.8, // fumée : l'image se déforme en volutes (les points restent fixes)
+  smokeHover: 1.5, // fumée renforcée sous la souris
   animSpeed: 1, // vitesse de l'animation
   rgb: 0, // effet « pixels RVB » (0 à 1)
   rgbGlow: 0.5, // halo des sous-pixels
-  glassShape: 'logo', // élément 3D de l'accueil : 'logo' ou 'prisms' (comme la référence)
+  glassShape: 'none', // élément 3D de l'accueil : 'none' (caché, logo intégré à l'image), 'logo' ou 'prisms'
   glassIor: 0.13, // intensité de la réfraction
   glassRough: 0.2, // étalement de la dispersion
   glassBack: 0.33, // influence des faces arrière
@@ -35,20 +36,20 @@ export const PROFILES = {
   hero: {
     mode: 0,
     size: 0.92,
-    relief: 0.67,
+    relief: 1.25,
     push: 0,
-    curve: 0.21,
-    opacity: 1.69,
-    contrast: 1.31,
+    curve: 0.66,
+    opacity: 1,
+    contrast: 1.37,
     veil: 0.19,
-    veilMode: 'points',
+    veilMode: 'behind',
     vignette: 1,
+    rgb: 0,
     glass: 0,
     reflect: 0,
     mouseRadius: 5,
     mouseForce: 1.2,
     breath: 0,
-    parallax: 0.3,
   },
   project: {
     mode: 1,

@@ -8,8 +8,10 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
 - « splat » : chaque image devient une grille de points (un par pixel échantillonné), avec sa couleur ;
   **la luminance détermine la profondeur**. Touche **Espace** : monochrome → couleurs → monochrome bleu ; **B** : ancien rendu de l'accueil ; **P** : panneau de réglages
   (taille des points, relief, distance, courbure, opacité, verre, reflets du fond, souris, respiration, parallaxe — mémorisés dans le navigateur) ;
-- animation de l'image (panneau P) : les points restent fixes, l'image affichée bouge doucement dessous
-  (zoom qui respire, dérive lente, frémissement de lumière) ; intensité et vitesse réglables ;
+- fumée (panneau P) : les points restent fixes, l'image se déforme en volutes de fumée dessous (fbm + domain warping),
+  plus fort sous la souris ; intensité, vitesse et fumée au survol réglables ;
+- logo « So » incrusté en volume dans l'image d'accueil : `scripts/logo-volume.py` calcule un calque ombré
+  et une carte de hauteur (section de tube) ; le logo 3D en verre est caché par défaut (panneau P : Caché / Logo / Prismes) ;
 - pixels RVB (panneau P) : chaque point devient un pixel d'écran OLED (PenTile, losanges) vu au microscope, halo réglable ;
 - effet verre : chaque point est une bille qui reflète les couleurs du fond situées derrière elle ;
 - accueil et contact : images reculées, bord à bord, profondeur inversée (clair = loin), courbure concave réglable ;
