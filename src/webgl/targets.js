@@ -3,10 +3,10 @@
  * Chaque cible renvoie un Float32Array de `count` × (x, y, z, luminance).
  */
 
-const SAMPLE_RES = 320
+const SAMPLE_RES = 440
 
 /** Échantillonne `count` points proportionnellement à `weights`, et les place dans un rectangle monde. */
-function sample({ weights, lum, w, h, count, rect, depth }) {
+function sample({ weights, lum, depthMap, w, h, count, rect, depth }) {
   const cdf = new Float32Array(weights.length)
   let total = 0
   for (let i = 0; i < weights.length; i++) {
@@ -16,8 +16,10 @@ function sample({ weights, lum, w, h, count, rect, depth }) {
   const out = new Float32Array(count * 4)
   if (total === 0) return out
 
+  const step = total / count
+  const offset = Math.random() * step
   for (let i = 0; i < count; i++) {
-    const r = Math.random() * total
+    const r = offset + i * step
     let lo = 0
     let hi = cdf.length - 1
     while (lo < hi) {
@@ -28,10 +30,11 @@ function sample({ weights, lum, w, h, count, rect, depth }) {
     const px = (lo % w) + Math.random()
     const py = Math.floor(lo / w) + Math.random()
     const l = lum[lo]
+    const z = depthMap ? depthMap[lo] : l
     const o = i * 4
     out[o] = rect.x + (px / w) * rect.w
     out[o + 1] = rect.y - (py / h) * rect.h
-    out[o + 2] = (l - 0.5) * depth + (Math.random() - 0.5) * 0.25
+    out[o + 2] = (z - 0.5) * depth + (Math.random() - 0.5) * 0.12
     out[o + 3] = l
   }
   return out
@@ -42,52 +45,6 @@ function canvas2d(w, h) {
   c.width = w
   c.height = h
   return c.getContext('2d', { willReadFrequently: true })
-}
-
-/** Le nom, en lettres pleines ; la profondeur suit l'épaisseur du trait. */
-export function textTarget(lines, { font = 'IBM Plex Sans', weight = 600 } = {}) {
-  return async (count, view, isSmall) => {
-    await document.fonts.load(`${weight} 100px "${font}"`)
-    const fontSize = 200
-    const lineHeight = fontSize * 0.92
-    const probe = canvas2d(10, 10)
-    probe.font = `${weight} ${fontSize}px "${font}"`
-    const textW = Math.max(...lines.map((l) => probe.measureText(l).width))
-    const pad = fontSize * 0.2
-    const cw = Math.ceil(textW + pad * 2)
-    const ch = Math.ceil(lineHeight * lines.length + pad * 2)
-
-    const ctx = canvas2d(cw, ch)
-    ctx.font = probe.font
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillStyle = '#fff'
-    lines.forEach((l, i) => ctx.fillText(l, cw / 2, pad + lineHeight * (i + 0.5)))
-    const sharp = ctx.getImageData(0, 0, cw, ch).data
-
-    // version floutée : le cœur des lettres est « plus lumineux » donc plus profond
-    const blur = canvas2d(cw, ch)
-    blur.filter = `blur(${fontSize * 0.06}px)`
-    blur.drawImage(ctx.canvas, 0, 0)
-    const soft = blur.getImageData(0, 0, cw, ch).data
-
-    const weights = new Float32Array(cw * ch)
-    const lum = new Float32Array(cw * ch)
-    for (let i = 0; i < cw * ch; i++) {
-      const a = sharp[i * 4] / 255
-      weights[i] = a > 0.5 ? 1 : 0
-      lum[i] = soft[i * 4] / 255
-    }
-
-    const maxW = view.w * (isSmall ? 0.9 : 0.78)
-    const maxH = view.h * (isSmall ? 0.5 : 0.6)
-    const scale = Math.min(maxW / cw, maxH / ch)
-    const rect = { w: cw * scale, h: ch * scale }
-    rect.x = -rect.w / 2
-    rect.y = rect.h / 2 + view.h * 0.06
-
-    return sample({ weights, lum, w: cw, h: ch, count, rect, depth: 2.4 })
-  }
 }
 
 const imageCache = new Map()
@@ -118,15 +75,33 @@ export function imageTarget(src, { invert = false, gamma = 1.5, depth = 7, size 
     ctx.drawImage(img, 0, 0, w, h)
     const data = ctx.getImageData(0, 0, w, h).data
 
-    const weights = new Float32Array(w * h)
-    const lum = new Float32Array(w * h)
-    for (let i = 0; i < w * h; i++) {
-      const o = i * 4
-      let l = (0.2126 * data[o] + 0.7152 * data[o + 1] + 0.0722 * data[o + 2]) / 255
+    // carte de profondeur lissée (flou) : des surfaces continues plutôt qu'un bruit de pixels
+    const blur = canvas2d(w, h)
+    blur.filter = `blur(${Math.max(1, w / 140)}px)`
+    blur.drawImage(img, 0, 0, w, h)
+    const soft = blur.getImageData(0, 0, w, h).data
+
+    const n = w * h
+    const weights = new Float32Array(n)
+    const lum = new Float32Array(n)
+    const depthMap = new Float32Array(n)
+    const luma = (d, o) => {
+      let l = (0.2126 * d[o] + 0.7152 * d[o + 1] + 0.0722 * d[o + 2]) / 255
       if (invert) l = 1 - l
-      l *= data[o + 3] / 255
-      lum[i] = l
-      weights[i] = Math.pow(l, gamma)
+      return l * (d[o + 3] / 255)
+    }
+    let max = 0
+    for (let i = 0; i < n; i++) {
+      lum[i] = luma(data, i * 4)
+      depthMap[i] = luma(soft, i * 4)
+      if (lum[i] > max) max = lum[i]
+    }
+    // contraste normalisé : l'encre la plus dense vaut 1
+    const k = max > 0 ? 1 / max : 1
+    for (let i = 0; i < n; i++) {
+      lum[i] = Math.min(1, lum[i] * k)
+      depthMap[i] = Math.min(1, depthMap[i] * k)
+      weights[i] = Math.pow(lum[i], gamma)
     }
 
     const maxW = view.w * (isSmall ? mobileSize : size)
@@ -136,6 +111,6 @@ export function imageTarget(src, { invert = false, gamma = 1.5, depth = 7, size 
     rect.x = -rect.w / 2
     rect.y = rect.h / 2
 
-    return sample({ weights, lum, w, h, count, rect, depth })
+    return sample({ weights, lum, depthMap, w, h, count, rect, depth })
   }
 }

@@ -51,7 +51,7 @@ void main() {
 
   vec4 mv = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mv;
-  gl_PointSize = uSize * (0.55 + lum * 0.9) * uPixelRatio * (30.0 / -mv.z);
+  gl_PointSize = uSize * (0.6 + lum * 0.7) * uPixelRatio * (30.0 / -mv.z);
 
-  vAlpha = (0.35 + 0.65 * lum) * uOpacity;
+  vAlpha = (0.3 + 0.7 * lum) * uOpacity;
 }

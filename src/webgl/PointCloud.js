@@ -30,7 +30,7 @@ export class PointCloud {
     this.canvas = canvas
     this.reducedMotion = reducedMotion
     this.isSmall = window.matchMedia('(max-width: 768px)').matches
-    this.count = this.isSmall ? 18000 : 42000
+    this.count = this.isSmall ? 40000 : 110000
 
     this.renderer = new WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: 'high-performance' })
     this.renderer.setClearColor(0x000000, 0)
@@ -51,6 +51,8 @@ export class PointCloud {
     this.scrollTarget = 0
     this.opacityTarget = 1
     this.offsetTarget = 0
+    // rotation manuelle (glisser), avec inertie
+    this.userRot = { x: 0, y: 0, vx: 0, vy: 0 }
 
     this.#buildPoints(color)
     this.resize()
@@ -95,7 +97,7 @@ export class PointCloud {
       uMouseRadius: { value: this.isSmall ? 2.2 : 3.2 },
       uColor: { value: new Color(color) },
       uOpacity: { value: 1 },
-      uSize: { value: this.isSmall ? 1.15 : 2.1 },
+      uSize: { value: this.isSmall ? 1.0 : 1.35 },
       uPixelRatio: { value: 1 },
       uMotion: { value: this.reducedMotion ? 0 : 1 },
     }
@@ -215,6 +217,19 @@ export class PointCloud {
     this.opacityTarget = v
   }
 
+  /** Rotation au glisser : dx, dy en pixels. */
+  drag(dx, dy) {
+    this.userRot.vy = dx * 0.006
+    this.userRot.vx = dy * 0.004
+    this.userRot.y += this.userRot.vy
+    this.userRot.x = Math.max(-0.9, Math.min(0.9, this.userRot.x + this.userRot.vx))
+    this.dragging = true
+  }
+
+  release() {
+    this.dragging = false
+  }
+
   setColor(color) {
     this.uniforms.uColor.value.set(color)
   }
@@ -259,8 +274,18 @@ export class PointCloud {
     // légère parallaxe de caméra
     if (!this.reducedMotion) {
       this.parallax.lerp(this.parallaxTarget, 0.04)
-      this.points.rotation.y = this.parallax.x * 0.12
-      this.points.rotation.x = -this.parallax.y * 0.08
+      const u = this.userRot
+      if (!this.dragging) {
+        // inertie puis retour lent face caméra
+        u.y += u.vy
+        u.x = Math.max(-0.9, Math.min(0.9, u.x + u.vx))
+        u.vx *= Math.pow(0.02, dt)
+        u.vy *= Math.pow(0.02, dt)
+        u.x *= Math.pow(0.6, dt)
+        u.y *= Math.pow(0.6, dt)
+      }
+      this.points.rotation.y = this.parallax.x * 0.12 + u.y
+      this.points.rotation.x = -this.parallax.y * 0.08 + u.x
     }
 
     this.renderer.render(this.scene, this.camera)

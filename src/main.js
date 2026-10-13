@@ -1,4 +1,4 @@
-import '@fontsource/manufacturing-consent/latin-400.css'
+import '@fontsource/instrument-serif/latin-400.css'
 import '@fontsource/figtree/latin-400.css'
 import '@fontsource/figtree/latin-600.css'
 import '@fontsource/figtree/latin-700.css'
@@ -8,7 +8,7 @@ import './styles/main.css'
 import Lenis from 'lenis'
 import { site, skills, about, timeline, projects } from './content.js'
 import { CaseView } from './case.js'
-import { tiles, TileMotion } from './tiles.js'
+import { tiles } from './tiles.js'
 
 const BASE = import.meta.env.BASE_URL
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -24,7 +24,7 @@ const bold = (str) => esc(str).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
 
 const root = document.documentElement
 const themeToggle = document.getElementById('theme-toggle')
-const themeColors = { dark: { bg: '#050407', points: '#ffffff' }, light: { bg: '#ffffff', points: '#3b21ff' } }
+const themeColors = { dark: { bg: '#050407', points: '#ffffff' }, light: { bg: '#ffffff', points: '#000000' } }
 let cloud = null
 
 function applyTheme(theme, save = false) {
@@ -49,14 +49,6 @@ themeToggle.addEventListener('click', (e) => {
    Rendu
 ------------------------------------------------------------------- */
 
-const [first, ...rest] = site.name.split(' ')
-document.getElementById('title-layer').innerHTML = tiles([first, rest.join(' ')], {
-  tag: 'div',
-  className: 'name-tiles',
-  label: site.name,
-  ghost: true,
-})
-
 // les compétences, réparties en lignes qui glissent en sens opposés au scroll
 const rows = [[], [], []]
 skills.forEach((s, i) => rows[i % rows.length].push(s))
@@ -69,7 +61,8 @@ app.innerHTML = `
     <span class="hero__scroll" aria-hidden="true">Défiler</span>
   </section>
 
-  <section class="work" id="projets" data-cloud="cover" data-cloud-opacity="0.9" aria-labelledby="work-title">
+  <section class="work" id="projets" data-cloud="project" aria-labelledby="work-title">
+    <div class="work__stage" aria-hidden="true"><span class="work__hint">Glisser pour faire tourner</span></div>
     <div class="work__inner">
       <h2 id="work-title">${tiles(['Projets', 'choisis'], { className: 'section-tiles reveal' })}</h2>
       <ul class="work__list">
@@ -203,7 +196,6 @@ document.querySelectorAll('a[href^="#"]:not([href^="#/"])').forEach((a) => {
   })
 })
 
-const tileMotion = new TileMotion({ hero: document.getElementById('title-layer'), reducedMotion })
 
 /* ------------------------------------------------------------------
    Nuage de points WebGL
@@ -232,15 +224,19 @@ async function initCloud() {
   cloud = new PointCloud(canvas, { color: themeColors[root.dataset.theme].points, reducedMotion })
   cloud.onContextLost = () => root.classList.add('no-webgl')
   const cover = { invert: true, gamma: 1.2, depth: 5 }
-  cloud.register('cover', imageTarget(`${BASE}media/site/squid-cloud.webp`, { ...cover, size: 0.46, mobileSize: 0.95 }))
+  cloud.register('cover', imageTarget(`${BASE}media/site/squid-cloud.webp`, { ...cover, size: 0.6, mobileSize: 0.95 }))
   cloud.register('terrain', imageTarget(`${BASE}media/site/terrain-cloud.webp`, { ...cover, size: 0.8 }))
-  for (const p of projects) cloud.register(p.slug, imageTarget(`${BASE}media/${p.cloud}`, { size: 0.42, mobileSize: 0.85, gamma: 2.2, depth: 9 }))
+  for (const p of projects) cloud.register(p.slug, imageTarget(`${BASE}media/${p.cloud}`, { invert: true, gamma: 1.1, depth: 6, size: 0.5, mobileSize: 0.92 }))
   await cloud.show('cover', { instant: true })
 }
 
 const sections = [...document.querySelectorAll('[data-cloud]')]
+const list = document.querySelector('.work__list')
+const links = [...document.querySelectorAll('.work-link')]
 const workSection = document.getElementById('projets')
-let hovered = null
+// projet affiché dans le nuage : reste sélectionné quand on quitte la liste pour manipuler le nuage
+let selected = projects[0].slug
+let inWork = false
 
 function updateCloud() {
   const vh = window.innerHeight
@@ -252,14 +248,19 @@ function updateCloud() {
     const r = s.getBoundingClientRect()
     if (r.top <= mid) section = s
   }
+  const nowInWork = section === workSection
+  if (nowInWork !== inWork) {
+    inWork = nowInWork
+    links.forEach((l) => l.classList.toggle('is-active', inWork && l.dataset.slug === selected))
+    list.classList.toggle('has-selection', inWork)
+  }
   if (!cloud) return
-  if (hovered && section !== workSection) setHover(null)
-  const key = hovered || section.dataset.cloud
+  const key = inWork ? selected : section.dataset.cloud
   cloud.show(key)
 
   cloud.setScroll(section.id === 'top' ? heroProgress * 0.5 : 0)
-  cloud.setOpacity(hovered ? 1 : Number(section.dataset.cloudOpacity ?? 1))
-  cloud.setOffset(hovered && !isSmall() ? 0.2 : 0)
+  cloud.setOpacity(Number(section.dataset.cloudOpacity ?? 1))
+  cloud.setOffset(inWork && !isSmall() ? 0.17 : 0)
 }
 
 /* Compétences : les lignes glissent en sens opposés */
@@ -276,33 +277,49 @@ function updateSkills() {
 }
 
 /* Survol des projets */
-const list = document.querySelector('.work__list')
-const links = [...document.querySelectorAll('.work-link')]
-function setHover(slug) {
-  if (hovered === slug) return
-  hovered = slug
-  list.classList.toggle('has-hover', !!slug)
-  links.forEach((l) => l.classList.toggle('is-active', l.dataset.slug === slug))
+function select(slug) {
+  if (selected === slug) return
+  selected = slug
+  links.forEach((l) => l.classList.toggle('is-active', inWork && l.dataset.slug === slug))
   updateCloud()
 }
 
 if (!isTouch) {
   links.forEach((l) => {
-    l.addEventListener('pointerenter', () => setHover(l.dataset.slug))
-    l.addEventListener('focus', () => setHover(l.dataset.slug))
-    l.addEventListener('blur', () => setHover(null))
+    l.addEventListener('pointerenter', () => select(l.dataset.slug))
+    l.addEventListener('focus', () => select(l.dataset.slug))
   })
-  list.addEventListener('pointerleave', () => setHover(null))
 } else {
   // tactile : le projet au centre de l'écran pilote le nuage
   const io = new IntersectionObserver(
     (entries) => {
-      for (const e of entries) if (e.isIntersecting) setHover(e.target.dataset.slug)
+      for (const e of entries) if (e.isIntersecting) select(e.target.dataset.slug)
     },
     { rootMargin: '-45% 0px -45% 0px' },
   )
   links.forEach((l) => io.observe(l))
 }
+
+/* Le nuage du projet se manipule : glisser pour le faire tourner (sans changer de projet) */
+const stage = document.querySelector('.work__stage')
+let dragFrom = null
+stage.addEventListener('pointerdown', (e) => {
+  dragFrom = { x: e.clientX, y: e.clientY }
+  stage.setPointerCapture(e.pointerId)
+  stage.classList.add('is-dragging')
+})
+stage.addEventListener('pointermove', (e) => {
+  if (!dragFrom || !cloud) return
+  cloud.drag(e.clientX - dragFrom.x, e.clientY - dragFrom.y)
+  dragFrom = { x: e.clientX, y: e.clientY }
+})
+const endDrag = () => {
+  dragFrom = null
+  cloud?.release()
+  stage.classList.remove('is-dragging')
+}
+stage.addEventListener('pointerup', endDrag)
+stage.addEventListener('pointercancel', endDrag)
 
 let ticking = false
 window.addEventListener(
@@ -325,7 +342,7 @@ window.addEventListener(
 
 const caseView = new CaseView(document.getElementById('case'), { onClose: () => closeRoute() })
 const baseTitle = document.title
-const background = [app, document.querySelector('.topbar'), document.getElementById('title-layer')]
+const background = [app, document.querySelector('.topbar')]
 let lastLink = null
 
 function closeRoute() {
@@ -396,7 +413,6 @@ Promise.all([
     () => {
       loader.classList.add('is-hidden')
       root.classList.add('is-ready')
-      tileMotion.rects = null
       document.querySelectorAll('.words, .reveal').forEach((el) => revealObserver.observe(el))
       updateCloud()
       updateSkills()
