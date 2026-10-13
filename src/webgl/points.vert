@@ -119,15 +119,6 @@ void main() {
     toneRaw += vec2(aUv.z, aUv.z == 0.0 ? 0.0 : -1.0) * dl;
   }
   vec2 tone = clamp((toneRaw - 0.5) * uContrast + 0.5, 0.0, 1.0);
-  // vignettage de l'image : ses bords noircissent (ellipse adaptée au format de l'image)
-  if (uImgVignette > 0.001) {
-    vec2 vc = (aUv.xy - 0.5) * 2.0;
-    float vig = 1.0 - uImgVignette * smoothstep(0.1, 0.95, length(vc));
-    vig = clamp(vig, 0.0, 1.0);
-    col.rgb *= vig;
-    tone.x *= vig;
-    tone.y = mix(1.0, tone.y, vig);
-  }
   float baseOff = mix(aOffFrom, aOffTo, m);
   float off = baseOff + uPush;
 
@@ -169,5 +160,13 @@ void main() {
 
   vec3 rgb = mix(mix(uColor, col.rgb, uColorMix), blue, uBlueMix);
   float alpha = mix(mix(mono, col.a, uColorMix), col.a, uBlueMix);
+
+  // vignettage de l'image : appliqué aux points de l'image, mais calé sur l'écran (pas sur le format de l'image)
+  if (uImgVignette > 0.001) {
+    vec2 ndc = vScreen * 2.0 - 1.0;
+    float vig = clamp(1.0 - uImgVignette * smoothstep(0.25, 1.35, length(ndc)), 0.0, 1.0);
+    rgb *= vig;                     // les points s'assombrissent
+    alpha *= mix(vig, 1.0, uLight); // thème sombre : ils s'effacent aussi vers le noir du fond
+  }
   vColor = vec4(rgb, alpha * uOpacity * uOpacityMul);
 }
