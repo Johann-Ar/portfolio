@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Johann Arata — Artiste visuel</title>
+    <meta
+      name="description"
+      content="Johann Arata, artiste visuel. Image, espace et captation : des captations environnementales réelles traduites en volumes et espaces traversables."
+    />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="color-scheme" content="light" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:title" content="Johann Arata — Artiste visuel" />
+    <meta property="og:description" content="Image, espace et captation. Des captations réelles traduites en volumes traversables." />
+    <meta property="og:image" content="share.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Johann Arata",
+        "jobTitle": "Artiste visuel",
+        "email": "mailto:arata.johann@gmail.com",
+        "address": { "@type": "PostalAddress", "addressRegion": "Auvergne-Rhône-Alpes", "addressCountry": "FR" },
+        "sameAs": ["https://github.com/holosene"]
+      }
+    </script>
+  </head>
+  <body>
+    <div class="loader" id="loader" aria-hidden="true">
+      <div class="loader__inner">
+        <span class="loader__name">Johann Arata</span>
+        <span class="loader__count" id="loader-count">000</span>
+      </div>
+      <div class="loader__bar"><span id="loader-bar"></span></div>
+    </div>
+
+    <canvas class="scene" id="scene" aria-hidden="true"></canvas>
+
+    <header class="topbar">
+      <a class="topbar__name" href="#top">Johann Arata</a>
+      <nav class="topbar__nav" aria-label="Navigation principale">
+        <a href="#projets">Projets</a>
+        <a href="#a-propos">À propos</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </header>
+
+    <main id="app"></main>
+
+    <section class="case" id="case" role="dialog" aria-modal="true" aria-labelledby="case-title" hidden data-lenis-prevent></section>
+
+    <noscript>
+      <p style="padding: 2rem; font-family: sans-serif">Ce site utilise JavaScript pour afficher les projets de Johann Arata. Contact : arata.johann@gmail.com</p>
+    </noscript>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
