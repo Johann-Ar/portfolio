@@ -10,6 +10,9 @@
   --font-display: 'Bricolage Grotesque Variable', 'Figtree', system-ui, sans-serif;
   --display-weight: 560;
   --display-track: -0.02em;
+  --nav-size: 0.95rem;
+  /* décalage RVB de la typo identitaire (rouge à gauche, bleu à droite) */
+  --rgb-shift: -0.028em 0 rgb(255 0 60 / 0.75), 0.028em 0 rgb(0 150 255 / 0.75);
   --font-sans: 'Figtree', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
@@ -139,13 +142,18 @@ ul {
   pointer-events: none;
 }
 .loader__count {
-  font-family: var(--font-display);
-  font-size: clamp(4rem, 14vw, 12rem);
-  line-height: 0.9;
+  /* même style que la barre du haut, en bas à droite sous la ligne */
+  order: 2;
+  align-self: flex-end;
+  margin-top: 0.9rem;
+  font-size: var(--nav-size);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
+  text-shadow: -1.5px 0 rgb(255 0 60 / 0.8), 1.5px 0 rgb(0 150 255 / 0.8);
 }
 .loader__bar {
-  margin-top: 1.2rem;
   height: 1px;
   background: var(--line);
 }
@@ -153,6 +161,10 @@ ul {
   display: block;
   height: 100%;
   background: var(--fg);
+  /* décalage RVB : rouge au-dessus, bleu en dessous */
+  box-shadow:
+    0 -1.5px 0 rgb(255 0 60 / 0.75),
+    0 1.5px 0 rgb(0 150 255 / 0.75);
   transform: scaleX(0);
   transform-origin: left;
 }
@@ -254,7 +266,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 26px var(--edge);
-  font-size: 0.8rem;
+  font-size: var(--nav-size);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -293,7 +305,7 @@ body {
 @media (max-width: 768px) {
   .topbar {
     padding: 18px var(--edge);
-    font-size: 0.7rem;
+    font-size: 0.8rem;
   }
   .topbar__nav {
     gap: 0.9rem;
@@ -1144,8 +1156,7 @@ html.case-open {
 .section-title,
 .skills__row,
 .case__title-wrapper h1,
-.case__next strong,
-.loader__count {
+.case__next strong {
   font-weight: var(--display-weight);
   letter-spacing: var(--display-track);
   font-optical-sizing: auto;
@@ -1169,8 +1180,7 @@ html.case-open {
 .case__title-wrapper h1,
 .case__next strong {
   text-shadow:
-    -0.012em 0 rgb(255 0 60 / 0.55),
-    0.012em 0 rgb(0 150 255 / 0.55),
+    var(--rgb-shift),
     0 0 22px rgb(0 0 0 / 0.45); /* lisibilité sur les images */
 }
 
