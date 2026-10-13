@@ -25,14 +25,14 @@ import { CAM_Z } from './targets.js'
 
 /** Réglages par défaut du panneau. */
 export const DEFAULT_SETTINGS = {
-  size: 0.92, // taille des points (1 = cellules jointives)
-  relief: 1, // amplitude de la profondeur
-  push: 0, // recul global
-  opacity: 1, // opacité globale
-  mouseRadius: 3.2, // rayon d'action de la souris
-  mouseForce: 1, // force de l'écartement
-  breath: 1, // respiration
-  parallax: 1, // parallaxe à la souris
+  size: 0.56, // taille des points (1 = cellules jointives)
+  relief: 1.54, // amplitude de la profondeur
+  push: 1.5, // recul global
+  opacity: 1.28, // opacité globale
+  mouseRadius: 5.1, // rayon d'action de la souris
+  mouseForce: 1.05, // force de l'écartement
+  breath: 5.15, // respiration
+  parallax: 1.05, // parallaxe à la souris
   curve: 0.45, // courbure des images plein écran : > 0 concave, < 0 sphérique
 }
 
@@ -75,6 +75,7 @@ export class PointCloud {
     this.settings = { ...DEFAULT_SETTINGS }
 
     this.#build(color, light)
+    for (const [k, v] of Object.entries(this.settings)) this.set(k, v) // réglages par défaut appliqués d'emblée
     this.resize()
 
     this.onResize = () => this.resize()
