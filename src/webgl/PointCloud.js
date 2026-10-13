@@ -385,7 +385,9 @@ export class PointCloud {
     // valeurs amorties, indépendantes du framerate
     const k = 1 - Math.pow(0.001, dt)
     u.uScroll.value += (this.scrollTarget - u.uScroll.value) * k
-    u.uOpacity.value += (this.opacityTarget - u.uOpacity.value) * k
+    // image demandée pas encore prête : on n'affiche pas l'ancienne en attendant (ex. accueil avant contact)
+    const waiting = this.wanted && this.wanted !== this.currentKey
+    u.uOpacity.value += ((waiting ? 0 : this.opacityTarget) - u.uOpacity.value) * k
     for (const name in this.uniformTargets) u[name].value += (this.uniformTargets[name] - u[name].value) * k
     u.uColorMix.value += ((this.colorMode === 1 ? 1 : 0) - u.uColorMix.value) * k
     u.uBlueMix.value += ((this.colorMode === 2 ? 1 : 0) - u.uBlueMix.value) * k
