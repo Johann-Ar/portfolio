@@ -47,6 +47,57 @@ function loadImage(src) {
 const luma = (r, g, b) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
 
 /**
+ * Flou gaussien (approché par 3 flous de boîte) calculé en JavaScript.
+ * `ctx.filter = 'blur()'` n'est pas pris en charge par Safari : sans lui, la profondeur y devenait
+ * un bruit de pixels et le rendu différait des autres navigateurs. Ici, le résultat est identique partout.
+ */
+function gaussianBlur(src, w, h, sigma) {
+  // tailles des boîtes pour 3 passes (W. Jarosz, « Fast image convolutions »)
+  const ideal = Math.sqrt((12 * sigma * sigma) / 3 + 1)
+  let wl = Math.floor(ideal)
+  if (wl % 2 === 0) wl--
+  const wu = wl + 2
+  const m = Math.round((12 * sigma * sigma - 3 * wl * wl - 12 * wl - 9) / (-4 * wl - 4))
+  const radii = [0, 1, 2].map((i) => ((i < m ? wl : wu) - 1) / 2)
+  let a = Float32Array.from(src)
+  let b = new Float32Array(src.length)
+  const pass = (from, to, r, horizontal) => {
+    const len = horizontal ? w : h
+    const lines = horizontal ? h : w
+    const step = horizontal ? 4 : w * 4
+    const norm = 1 / (2 * r + 1)
+    for (let line = 0; line < lines; line++) {
+      const base = horizontal ? line * w * 4 : line * 4
+      for (let c = 0; c < 3; c++) {
+        // bords étendus (pixel du bord répété)
+        let acc = 0
+        for (let k = -r; k <= r; k++) acc += from[base + Math.min(Math.max(k, 0), len - 1) * step + c]
+        for (let i = 0; i < len; i++) {
+          to[base + i * step + c] = acc * norm
+          const add = Math.min(i + r + 1, len - 1)
+          const sub = Math.max(i - r, 0)
+          acc += from[base + add * step + c] - from[base + sub * step + c]
+        }
+      }
+    }
+  }
+  for (const r of radii) {
+    if (r < 1) continue
+    pass(a, b, r, true)
+    pass(b, a, r, false)
+  }
+  return a
+}
+
+/** Image redimensionnée à w × h puis floutée (sigma en pixels, comme `blur()` en CSS). */
+function blurredPixels(img, w, h, sigma) {
+  const c = canvas2d(w, h)
+  c.imageSmoothingQuality = 'high'
+  c.drawImage(img, 0, 0, w, h)
+  return gaussianBlur(c.getImageData(0, 0, w, h).data, w, h, sigma)
+}
+
+/**
  * fit     'contain' : tient dans `size` ; 'cover' : remplit l'écran et déborde du cadre
  * size    largeur max (fraction de l'écran) en mode contain
  * overscan débordement en mode cover (1.15 = 15 % au-delà du cadre)
@@ -102,10 +153,7 @@ export function imageTarget(src, { fit = 'contain', size = 0.5, mobileSize = 0.9
     const data = ctx.getImageData(0, 0, gw, gh).data
 
     // profondeur lissée : des surfaces continues plutôt qu'un bruit de pixels
-    const blur = canvas2d(gw, gh)
-    blur.filter = `blur(${Math.max(1, gw / 160)}px)`
-    blur.drawImage(img, 0, 0, gw, gh)
-    const soft = blur.getImageData(0, 0, gw, gh).data
+    const soft = blurredPixels(img, gw, gh, Math.max(1, gw / 160))
 
     // étirement du contraste (min/max) pour exploiter toute la plage
     let lo = 1
@@ -212,10 +260,7 @@ export function sampledTarget(src, { overscan = 1.03, depth = 6, gamma = 1.4, li
     const ctx = canvas2d(w, h)
     ctx.drawImage(img, 0, 0, w, h)
     const data = ctx.getImageData(0, 0, w, h).data
-    const blur = canvas2d(w, h)
-    blur.filter = `blur(${w / 140}px)`
-    blur.drawImage(img, 0, 0, w, h)
-    const soft = blur.getImageData(0, 0, w, h).data
+    const soft = blurredPixels(img, w, h, w / 140)
 
     const n = w * h
     const lum = new Float32Array(n)
