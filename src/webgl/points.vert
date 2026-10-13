@@ -15,7 +15,6 @@ uniform float uScroll;
 uniform vec3 uMouse;
 uniform float uMouseRadius;
 uniform float uMouseForce;
-uniform float uHole; // 0 : la souris écarte les points ; 1 : trou noir (aspiration en spirale)
 uniform vec3 uColor;
 uniform float uLight;
 uniform float uColorMix;
@@ -36,8 +35,7 @@ uniform float uMotion;
 varying vec4 vColor;
 varying vec2 vScreen;
 varying float vSize; // taille du point en pixels
-varying vec2 vCell;
-varying float vHole; // 0 loin du trou noir, 1 sur l'horizon // case de la grille d'origine (motif de sous-pixels) // position à l'écran (0 à 1), pour lire les couleurs du fond
+varying vec2 vCell; // case de la grille d'origine (motif de sous-pixels) // position à l'écran (0 à 1), pour lire les couleurs du fond
 
 float easeInOutCubic(float t) {
   return t < 0.5 ? 4.0 * t * t * t : 1.0 - pow(-2.0 * t + 2.0, 3.0) / 2.0;
@@ -72,19 +70,9 @@ void main() {
   vec2 mouse = uMouse.xy * (uCamZ + off) / uCamZ;
   vec2 d = pos.xy - mouse;
   float radius = uMouseRadius * (uCamZ + off) / uCamZ;
-  float dist = length(d);
-  float f = smoothstep(radius, 0.0, dist) * uMotion * uMouseForce;
-  float k = (uCamZ + off) / uCamZ;
-  // répulsion (mode classique)
-  vec2 repel = normalize(d + 1e-4) * f * 0.7 * k;
-  // trou noir : les points sont aspirés et tournent autour du curseur, de plus en plus vite près du centre
-  float pull = smoothstep(radius * 1.6, 0.0, dist) * uMotion * uMouseForce;
-  float ang = pull * pull * 2.6 + uTime * 0.6 * pull;
-  vec2 rd = vec2(cos(ang) * d.x - sin(ang) * d.y, sin(ang) * d.x + cos(ang) * d.y);
-  vec2 hole = (rd * (1.0 - pull * 0.55) - d);
-  pos.xy += mix(repel, hole, uHole);
-  pos.z += mix(f * 2.5, -pull * pull * 9.0, uHole); // aspirés vers le fond
-  vHole = uHole * smoothstep(radius * 0.38, radius * 0.08, dist);
+  float f = smoothstep(radius, 0.0, length(d)) * uMotion * uMouseForce;
+  pos.xy += normalize(d + 1e-4) * f * 0.7 * (uCamZ + off) / uCamZ;
+  pos.z += f * 2.5;
 
   // sortie au scroll : le nuage se déploie en profondeur
   pos.z += uScroll * (aRand.y - 0.5) * 30.0;

@@ -151,8 +151,6 @@ export class PointCloud {
       uContrast: { value: 1 },
       uVeilTint: { value: 0 },
       uRgb: { value: 0 },
-      uHole: { value: 1 },
-      uRgbPattern: { value: 0 },
       uRgbGlow: { value: 0.5 },
       uReflect: { value: DEFAULT_SETTINGS.reflect },
       uAspect: { value: 1 },
@@ -207,16 +205,6 @@ export class PointCloud {
   /** Applique un réglage ; sauf `immediate`, la valeur est rejointe en douceur (changement de section). */
   set(name, value, immediate = false) {
     this.settings[name] = value
-    if (name === 'cursor') {
-      this.uniformTargets ??= {}
-      this.uniformTargets.uHole = value === 'hole' ? 1 : 0
-      if (immediate) this.uniforms.uHole.value = this.uniformTargets.uHole
-      return
-    }
-    if (name === 'rgbPattern') {
-      this.uniforms.uRgbPattern.value = value === 'oled' ? 1 : 0
-      return
-    }
     const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect', contrast: 'uContrast', mouseRadius: 'uMouseRadius', veilTint: 'uVeilTint', rgb: 'uRgb', rgbGlow: 'uRgbGlow' }
     const uniform = map[name]
     if (!uniform) return
