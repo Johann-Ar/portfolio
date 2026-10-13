@@ -162,6 +162,7 @@ export class PointCloud {
       uGlass: { value: DEFAULT_SETTINGS.glass },
       uContrast: { value: 1 },
       uVeilTint: { value: 0 },
+      uVeilBlack: { value: 0 },
       uImage: { value: null }, // image affichée, relue avec un mouvement lent (animation de l'image)
       uAnim: { value: 0 },
       uAnimSpeed: { value: 1 },
@@ -230,7 +231,7 @@ export class PointCloud {
       this.uniforms.uShape.value = { round: 0, square: 1, diamond: 2 }[value] ?? 0
       return
     }
-    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect', contrast: 'uContrast', mouseRadius: 'uMouseRadius', veilTint: 'uVeilTint', anim: 'uAnim', animSpeed: 'uAnimSpeed', smokeHover: 'uSmokeHover', smokeWarp: 'uSmokeWarp', imgVignette: 'uImgVignette', rgb: 'uRgb', rgbGlow: 'uRgbGlow' }
+    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect', contrast: 'uContrast', mouseRadius: 'uMouseRadius', veilTint: 'uVeilTint', veilBlack: 'uVeilBlack', anim: 'uAnim', animSpeed: 'uAnimSpeed', smokeHover: 'uSmokeHover', smokeWarp: 'uSmokeWarp', imgVignette: 'uImgVignette', rgb: 'uRgb', rgbGlow: 'uRgbGlow' }
     const uniform = map[name]
     if (!uniform) return
     const v = name === 'mouseRadius' ? value * (this.isSmall ? 0.7 : 1) : value

@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS = {
   reflect: 0, // intensité des couleurs du fond reflétées
   contrast: 1, // contraste de l'image affichée
   veil: 0.4, // calque aux couleurs du fond par-dessus l'accueil et le contact
+  veilBlack: 0, // calque « points » : 1 = pas de couleur sur les zones noires
   veilMode: 'over', // placement du calque : 'front' devant tout, 'over' sur l'image, 'behind' derrière, 'points' seulement les points
   vignette: 0, // vignettage (bords assombris)
   anim: 0.8, // fumée : l'image se déforme en volutes (les points restent fixes)
@@ -97,6 +98,7 @@ export const PROFILES = {
     contrast: 1.39,
     veil: 0.2,
     veilMode: 'points',
+    veilBlack: 1,
     vignette: 0,
     imgVignette: 0,
     anim: 0.69,

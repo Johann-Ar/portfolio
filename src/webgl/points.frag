@@ -1,4 +1,5 @@
 varying vec4 vColor;
+varying float vBright;
 varying vec2 vScreen;
 varying float vSize;
 varying vec2 vCell;
@@ -8,6 +9,7 @@ uniform float uReflect;  // intensité des couleurs du fond reflétées
 uniform float uLight;
 uniform float uAspect;
 uniform float uVeilTint; // calque couleurs posé uniquement sur les points
+uniform float uVeilBlack; // 1 : les zones noires de l'image ne reçoivent pas de couleur
 uniform float uRgb;      // effet « pixels RVB » : chaque point devient un pixel d'écran OLED (PenTile) vu au microscope
 uniform float uRgbGlow;  // halo lumineux autour des sous-pixels
 uniform float uSizeFactor;
@@ -96,8 +98,10 @@ void main() {
   rgb += spec * 0.55 * min(uGlass, 2.0) * mix(1.0, 0.6, uLight);
   rgb += fresnel * env * 0.25 * min(uGlass, 2.0);
   // calque couleurs « seulement sur les points » : teinte de la palette, à la luminosité du point
-  vec3 veilCol = backdrop(vScreen) * (0.35 + 0.9 * max(max(rgb.r, rgb.g), rgb.b));
-  rgb = mix(rgb, veilCol, clamp(uVeilTint, 0.0, 1.0));
+  vec3 veilCol = backdrop(vScreen) * (0.35 * (1.0 - uVeilBlack) + 0.9 * max(max(rgb.r, rgb.g), rgb.b));
+  // noirs préservés : la teinte ne se pose que là où l'image est claire
+  float veilKeep = mix(1.0, smoothstep(0.04, 0.45, vBright), clamp(uVeilBlack, 0.0, 1.0));
+  rgb = mix(rgb, veilCol, clamp(uVeilTint, 0.0, 1.0) * veilKeep);
 
   // bord lissé sur environ un pixel, quelle que soit la taille du point : disques nets
   float r = sqrt(r2);

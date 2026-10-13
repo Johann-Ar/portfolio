@@ -49,6 +49,7 @@ uniform float uScreenScale;
 uniform float uMotion;
 
 varying vec4 vColor;
+varying float vBright; // luminosité du point dans l'image (0 noir, 1 blanc), avant opacité
 varying vec2 vScreen;
 varying float vSize; // taille du point en pixels
 varying vec2 vCell; // case de la grille d'origine (motif de sous-pixels) // position à l'écran (0 à 1), pour lire les couleurs du fond
@@ -198,5 +199,6 @@ void main() {
     rgb *= vig;                     // les points s'assombrissent
     alpha *= mix(vig, 1.0, uLight); // thème sombre : ils s'effacent aussi vers le noir du fond
   }
+  vBright = dot(rgb, vec3(0.2126, 0.7152, 0.0722)) * clamp(alpha, 0.0, 1.0);
   vColor = vec4(rgb, alpha * uOpacity * uOpacityMul);
 }
