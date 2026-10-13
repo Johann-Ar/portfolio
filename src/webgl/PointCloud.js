@@ -158,6 +158,7 @@ export class PointCloud {
       uBreath: { value: 1 },
       uCamZ: { value: CAM_Z },
       uCurve: { value: DEFAULT_SETTINGS.curve },
+      uImgHalf: { value: new Vector2(1, 1) }, // demi-largeur, demi-hauteur de l'image affichée
       uViewH: { value: 1 },
       uGlass: { value: DEFAULT_SETTINGS.glass },
       uContrast: { value: 1 },
@@ -284,6 +285,7 @@ export class PointCloud {
       data.texture ??= Object.assign(new Texture(data.image), { minFilter: LinearFilter, generateMipmaps: false, needsUpdate: true })
       this.uniforms.uImage.value = data.texture
       this.uniforms.uToneGain.value = data.toneGain || 1
+      if (data.half) this.uniforms.uImgHalf.value.set(data.half[0], data.half[1])
       const im = data.image
       this.uniforms.uAspectRatio.value = (im.naturalWidth || im.width) / (im.naturalHeight || im.height)
     }

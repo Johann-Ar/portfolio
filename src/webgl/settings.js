@@ -71,7 +71,7 @@ export const PROFILES = {
     contrast: 0.53,
     veil: 0.09,
     veilMode: 'points',
-    vignette: 0,
+    vignette: 1,
     imgVignette: 0,
     anim: 0.8,
     animSpeed: 1,

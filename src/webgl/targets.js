@@ -192,7 +192,8 @@ export function imageTarget(src, { fit = 'contain', size = 0.5, mobileSize = 0.9
       full.drawImage(ov[0], ...ovRect(img.naturalWidth, img.naturalHeight))
       image = full.canvas
     }
-    return { pos, col, tone, off, uv, image, toneGain: 1 / span }
+    // demi-dimensions de l'image (courbure en boule des images de projet, indépendante du format)
+    return { pos, col, tone, off, uv, image, toneGain: 1 / span, half: [(gw * cell) / 2, (gh * cell) / 2] }
   }
 }
 

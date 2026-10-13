@@ -33,7 +33,17 @@ uniform float uPush;
 uniform float uBreath;
 uniform float uContrast; // contraste de l'image
 uniform float uCamZ;
-uniform float uCurve;     // courbure des images reculées : > 0 concave, < 0 sphérique
+uniform float uCurve;     // courbure : > 0 concave, < 0 sphérique
+uniform vec2 uImgHalf;    // demi-dimensions de l'image affichée (boule des images de projet)
+
+// 2·sin²(a/2)/a, sans division par zéro (équivaut à a/2 près de 0)
+float halfVers(float a) {
+  return abs(a) < 1e-4 ? a * 0.5 : 2.0 * sin(a * 0.5) * sin(a * 0.5) / a;
+}
+// sin(a)/a
+float sinc(float a) {
+  return abs(a) < 1e-4 ? 1.0 : sin(a) / a;
+}
 uniform float uViewH;     // hauteur visible du plan z = 0
 uniform float uScreenScale;
 uniform float uMotion;
@@ -124,10 +134,28 @@ void main() {
   float baseOff = mix(aOffFrom, aOffTo, m);
   float off = baseOff + uPush;
 
-  // courbure : l'image n'est plus un plan parallèle à l'écran (toutes les images, projets compris)
+  // courbure : l'image n'est plus un plan parallèle à l'écran
   float scaleAtDepth = (uCamZ + baseOff) / uCamZ;
-  vec2 q = pos.xy / (uViewH * 0.5 * scaleAtDepth);
-  pos.z += uCurve * dot(q, q) * 12.0 * scaleAtDepth;
+  if (baseOff > 0.5) {
+    // images plein écran reculées (accueil, contact) : courbure douce, calée sur l'écran
+    vec2 q = pos.xy / (uViewH * 0.5 * scaleAtDepth);
+    pos.z += uCurve * dot(q, q) * 12.0 * scaleAtDepth;
+  } else if (abs(uCurve) > 0.001) {
+    // images de projet : l'image s'enroule sur une sphère sans être déformée ;
+    // au maximum elle forme une boule, quel que soit son format (rayon tiré de ses dimensions)
+    float t = clamp(abs(uCurve) / 1.5, 0.0, 1.0);
+    float s = sign(uCurve);
+    float R = max(uImgHalf.x / 3.14159, uImgHalf.y / 1.5708) / t;
+    float h = pos.z; // relief : porté le long de la normale de la sphère
+    float lon = pos.x / R;
+    float lat = pos.y / R;
+    float cl = cos(lat);
+    float cc = cl * cos(lon);
+    float sag = pos.y * halfVers(lat) + cl * pos.x * halfVers(lon); // R·(1 − cos lat · cos lon)
+    pos.x = pos.x * sinc(lon) * cl - s * h * cl * sin(lon);
+    pos.y = pos.y * sinc(lat) - s * h * sin(lat);
+    pos.z = s * sag + h * cc;
+  }
 
   // légère respiration
   float t = uTime * 0.5;
