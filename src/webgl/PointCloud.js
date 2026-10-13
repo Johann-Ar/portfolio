@@ -159,6 +159,8 @@ export class PointCloud {
       uAnimSpeed: { value: 1 },
       uToneGain: { value: 1 },
       uSmokeHover: { value: 1.5 },
+      uSmokeWarp: { value: 0.3 },
+      uImgVignette: { value: 0 },
       uAspectRatio: { value: 2 },
       uRgb: { value: 0 },
       uRgbGlow: { value: 0.5 },
@@ -215,7 +217,7 @@ export class PointCloud {
   /** Applique un réglage ; sauf `immediate`, la valeur est rejointe en douceur (changement de section). */
   set(name, value, immediate = false) {
     this.settings[name] = value
-    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect', contrast: 'uContrast', mouseRadius: 'uMouseRadius', veilTint: 'uVeilTint', anim: 'uAnim', animSpeed: 'uAnimSpeed', smokeHover: 'uSmokeHover', rgb: 'uRgb', rgbGlow: 'uRgbGlow' }
+    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect', contrast: 'uContrast', mouseRadius: 'uMouseRadius', veilTint: 'uVeilTint', anim: 'uAnim', animSpeed: 'uAnimSpeed', smokeHover: 'uSmokeHover', smokeWarp: 'uSmokeWarp', imgVignette: 'uImgVignette', rgb: 'uRgb', rgbGlow: 'uRgbGlow' }
     const uniform = map[name]
     if (!uniform) return
     const v = name === 'mouseRadius' ? value * (this.isSmall ? 0.7 : 1) : value

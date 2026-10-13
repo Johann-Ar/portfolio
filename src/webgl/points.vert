@@ -44,6 +44,8 @@ varying float vSize; // taille du point en pixels
 varying vec2 vCell; // case de la grille d'origine (motif de sous-pixels) // position à l'écran (0 à 1), pour lire les couleurs du fond
 
 uniform float uSmokeHover; // fumée renforcée sous la souris
+uniform float uSmokeWarp;  // déformation de l'image par la fumée
+uniform float uImgVignette; // vignettage appliqué à l'image elle-même
 uniform float uAspectRatio;
 
 // ---- fumée : bruit de valeur 3D + fbm + déformation de domaine (domain warping) ----
@@ -106,7 +108,7 @@ void main() {
     float ta = uTime * uAnimSpeed;
     vec4 c0 = texture2D(uImage, aUv.xy);
     vec3 sm = smoke(aUv.xy, ta + hoverF * 2.0);
-    vec2 wuv = clamp(aUv.xy + sm.xy * 0.045 * amt, 0.001, 0.999);
+    vec2 wuv = clamp(aUv.xy + sm.xy * 0.045 * amt * uSmokeWarp, 0.001, 0.999);
     vec3 c1 = texture2D(uImage, wuv).rgb;
     // densité : voile lumineux qui épouse les zones claires (nuage), creux dans les zones sombres
     float lum1 = dot(c1, vec3(0.2126, 0.7152, 0.0722));
@@ -117,6 +119,15 @@ void main() {
     toneRaw += vec2(aUv.z, aUv.z == 0.0 ? 0.0 : -1.0) * dl;
   }
   vec2 tone = clamp((toneRaw - 0.5) * uContrast + 0.5, 0.0, 1.0);
+  // vignettage de l'image : ses bords noircissent (ellipse adaptée au format de l'image)
+  if (uImgVignette > 0.001) {
+    vec2 vc = (aUv.xy - 0.5) * 2.0;
+    float vig = 1.0 - uImgVignette * smoothstep(0.1, 0.95, length(vc));
+    vig = clamp(vig, 0.0, 1.0);
+    col.rgb *= vig;
+    tone.x *= vig;
+    tone.y = mix(1.0, tone.y, vig);
+  }
   float baseOff = mix(aOffFrom, aOffTo, m);
   float off = baseOff + uPush;
 

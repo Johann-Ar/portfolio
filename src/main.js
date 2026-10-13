@@ -242,9 +242,8 @@ async function initCloud() {
   const portrait = `${BASE}media/site/portrait.webp`
   // accueil et contact : images reculées, bord à bord, profondeur inversée (clair = loin, foncé = proche)
   const far = { fit: 'cover', distance: 34, depth: 14, invertDepth: true }
-  // logo « So » incrusté dans l'image d'accueil, en volume (calque ombré + carte de hauteur)
-  const logoOverlay = { layer: `${BASE}media/site/logo-layer.png`, height: `${BASE}media/site/logo-height.png`, cx: 0.472, cy: 0.43, h: 0.3, lift: 4.5 }
-  cloud.register('hero', imageTarget(portrait, { ...far, focusX: 0.6, overlay: logoOverlay }))
+  // logo en volume possible via l'option overlay d'imageTarget (voir scripts/logo-volume.py)
+  cloud.register('hero', imageTarget(portrait, { ...far, focusX: 0.6 }))
   // touche B : ancienne version (points répartis selon la lumière), toujours plein écran
   cloud.register('hero-old-dark', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6 }))
   cloud.register('hero-old-light', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6, light: true }))
