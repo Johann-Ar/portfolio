@@ -112,10 +112,6 @@ app.innerHTML = `
     </ul>
   </section>
 
-  <footer class="footer">
-    <span>© ${new Date().getFullYear()} ${esc(site.name)}</span>
-    <span><span data-t="role">${esc(tr(ui.role))}</span> — ${esc(site.location)}</span>
-  </footer>
 `
 
 /* Découpe en mots pour l'apparition mot à mot */
@@ -368,6 +364,16 @@ function updateCloud() {
   cloud.setOffset(inWork && !isSmall() ? 0.17 : 0, smallWork ? 0.2 : 0)
 }
 
+/* Le texte d'accueil fond quand le titre « Projets choisis » apparaît */
+const workTitle = document.getElementById('work-title')
+function updateIntro() {
+  const vh = window.innerHeight
+  const top = workTitle.getBoundingClientRect().top
+  // 0 quand le titre entre par le bas de l'écran, 1 quand il a remonté d'un quart d'écran
+  const f = Math.min(Math.max((vh - top) / (vh * 0.25), 0), 1)
+  root.style.setProperty('--intro-fade', f.toFixed(3))
+}
+
 /* Compétences : les lignes glissent en sens opposés */
 const skillRows = [...document.querySelectorAll('.skills__row')]
 const skillsSection = document.querySelector('.skills')
@@ -455,6 +461,7 @@ window.addEventListener(
       ticking = false
       updateCloud()
       updateSkills()
+      updateIntro()
     })
   },
   { passive: true },
@@ -544,6 +551,7 @@ Promise.all([
       // les points dispersés se rassemblent pour former l'image d'accueil
       updateCloud()
       updateSkills()
+      updateIntro()
       route()
       const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1200))
       idle(() => projects.forEach((p) => cloud?.preload(p.slug)))

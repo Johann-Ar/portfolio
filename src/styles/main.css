@@ -9,7 +9,7 @@
 :root {
   --font-display: 'Bricolage Grotesque Variable', 'Figtree', system-ui, sans-serif;
   --display-weight: 560;
-  --display-track: -0.035em;
+  --display-track: -0.02em;
   --font-sans: 'Figtree', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
@@ -342,6 +342,9 @@ body {
   text-align: center;
 }
 .hero__intro {
+  /* s'efface quand le titre « Projets choisis » arrive (--intro-fade, piloté au scroll) */
+  opacity: calc(1 - var(--intro-fade, 0));
+  filter: blur(calc(var(--intro-fade, 0) * 6px));
   text-shadow: 0 0 18px rgb(0 0 0 / 0.45);
   max-width: 780px;
   font-size: 1rem;
@@ -549,7 +552,7 @@ body {
 .contact {
   text-shadow: 0 0 22px rgb(0 0 0 / 0.55);
   min-height: 90vh;
-  padding: 14vh var(--edge) 0;
+  padding: 14vh var(--edge) 14vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -632,23 +635,6 @@ body {
 }
 .socials a:hover {
   opacity: 0.5;
-}
-
-.footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 12vh var(--edge) 26px;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-}
-@media (max-width: 768px) {
-  .footer {
-    flex-direction: column;
-  }
 }
 
 /* ---------- Page projet (composition de la référence) ---------- */
@@ -1169,7 +1155,7 @@ html.case-open {
   line-height: 0.95;
 }
 .skills__row {
-  letter-spacing: -0.045em;
+  letter-spacing: -0.022em;
   line-height: 1.02;
 }
 .case__close button {
