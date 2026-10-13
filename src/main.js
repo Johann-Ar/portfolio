@@ -346,21 +346,23 @@ function updateCloud() {
     list.classList.toggle('has-selection', inWork)
   }
   if (!cloud) return
-  // réglages selon le type d'image affichée
-  const profile = { top: 'hero', projets: 'project', contact: 'contact' }[section.id] || 'other'
-  panel.setProfile(profile)
   let key = inWork ? selected : section.dataset.cloud
-  // sections sans image (compétences, à propos) : le nuage s'efface, la dernière image reste en mémoire
+  // d'abord l'image (l'ancienne commence à disparaître avec ses propres réglages), puis les réglages de la suivante
+  // sections sans image (compétences, à propos) : l'image se disperse, le nuage reste vide
   const empty = key === 'none'
-  if (!empty) {
+  if (empty) cloud.hide()
+  else {
     sharp?.show(key)
     if (key === 'hero' && heroOld) key = 'hero-old'
     cloud.show(key)
   }
+  // réglages selon le type d'image affichée (appliqués d'un coup quand elle apparaît)
+  const profile = { top: 'hero', projets: 'project', contact: 'contact' }[section.id] || 'other'
+  panel.setProfile(profile)
   cloud.setScroll(section.id === 'top' ? heroProgress * 0.4 : 0)
   // mobile : le nuage du projet passe au-dessus de la liste, plus discret pour garder le texte lisible
   const smallWork = inWork && isSmall()
-  cloud.setOpacity(empty ? 0 : smallWork ? 0.55 : Number(section.dataset.cloudOpacity ?? 1))
+  cloud.setOpacity(smallWork ? 0.55 : Number(section.dataset.cloudOpacity ?? 1))
   cloud.setOffset(inWork && !isSmall() ? 0.17 : 0, smallWork ? 0.2 : 0)
 }
 
@@ -369,8 +371,8 @@ const workTitle = document.getElementById('work-title')
 function updateIntro() {
   const vh = window.innerHeight
   const top = workTitle.getBoundingClientRect().top
-  // 0 quand le titre entre par le bas de l'écran, 1 quand il a remonté d'un quart d'écran
-  const f = Math.min(Math.max((vh - top) / (vh * 0.25), 0), 1)
+  // 0 quand le titre entre par le bas de l'écran, 1 quand il a remonté d'un huitième d'écran (fondu court)
+  const f = Math.min(Math.max((vh - top) / (vh * 0.125), 0), 1)
   root.style.setProperty('--intro-fade', f.toFixed(3))
 }
 

@@ -28,7 +28,7 @@ import { DEFAULT_SETTINGS } from './settings.js'
 
 
 const MORPH_DURATION = 1.8
-const DISPERSE_DURATION = 1.2 // disparition de l'accueil, un peu plus rapide que l'apparition
+const DISPERSE_DURATION = 1.2 // disparition d'une image (apparition à l'envers, un peu plus rapide)
 const DELAY_SPREAD = 0.35
 const ROT_LIMIT = { x: 0.22, y: 0.4 } // rotation manuelle volontairement limitée
 
@@ -62,6 +62,8 @@ export class PointCloud {
     this.scrollTarget = 0
     this.opacityTarget = 1
     this.offsetTarget = 0
+    this.phase = 'hidden' // 'shown' (image visible), 'dispersing' (en train de disparaître), 'hidden' (nuage vide)
+    this.nextImage = null // image qui apparaîtra à la fin de la dispersion
     this.colorMode = 0 // 0 monochrome, 1 couleurs, 2 bleu
     this.mix = { color: 0, blue: 0 }
     this.settings = { ...DEFAULT_SETTINGS }
@@ -238,8 +240,8 @@ export class PointCloud {
     const v = name === 'mouseRadius' ? value * (this.isSmall ? 0.7 : 1) : value
     this.uniformTargets ??= {}
     this.uniformTargets[uniform] = v
-    // nuage invisible (section sans image) : le réglage s'applique d'un coup, sans transition visible
-    if (immediate || this.uniforms.uOpacity.value < 0.03) this.uniforms[uniform].value = v
+    // nuage vide (section sans image) : le réglage s'applique d'un coup, sans transition visible
+    if (immediate || this.phase === 'hidden') this.uniforms[uniform].value = v
   }
 
   /** Enregistre une cible : fonction asynchrone (count, view, isSmall) -> { pos, col, tone, off }. */
@@ -260,34 +262,48 @@ export class PointCloud {
     return this.#resolve(key)
   }
 
+  /**
+   * Affiche une image. Aucune transition ne relie deux images : l'image visible se disperse
+   * entièrement (apparition à l'envers), puis la suivante apparaît seule, avec ses propres réglages.
+   */
   async show(key, { instant = false, force = false } = {}) {
     this.wanted = key
+    const visible = this.phase === 'shown' && this.currentKey
+    if (visible && key !== this.currentKey && !instant && !this.reducedMotion) this.#disperse() // tout de suite, sans attendre le chargement
     const data = await this.#resolve(key)
     if (!data || this.wanted !== key) return
-    if (key === this.currentKey && !force) {
-      // retour sur l'image en cours de disparition : ses points se rassemblent à nouveau
-      if (this.swap?.disperse) {
-        this.swap = null
-        this.#apply(key, data, false)
-      } else this.swap = null
-      return
-    }
-
     if (instant || this.reducedMotion) return this.#apply(key, data, true)
-    // chaque image a sa propre apparition : l'image affichée s'efface d'abord, sans morph qui les relie
-    if (this.currentKey && this.uniforms.uOpacity.value > 0.03) {
-      // accueil : disparition = apparition à l'envers (les points se dispersent et s'éteignent)
-      const disperse = this.currentKey.startsWith('hero')
-      if (disperse && !this.swap?.disperse) this.#disperse()
-      this.swap = { key, data, disperse: disperse || !!this.swap?.disperse }
-      return
-    }
-    this.swap = null
-    this.#apply(key, data, false)
+    if (this.phase === 'shown' && key === this.currentKey && !force) return
+    if (this.phase === 'dispersing') this.nextImage = { key, data } // apparaîtra à la fin de la dispersion
+    else this.#apply(key, data, false)
+  }
+
+  /** Section sans image : l'image visible se disperse et le nuage reste vide. */
+  hide() {
+    this.wanted = null
+    this.nextImage = null
+    if (this.phase === 'shown' && this.currentKey && !this.reducedMotion) this.#disperse()
+    else if (this.reducedMotion) this.phase = 'hidden'
+  }
+
+  /** Les réglages de la nouvelle image s'appliquent d'un coup, pendant qu'elle est encore invisible. */
+  #snapSettings() {
+    const u = this.uniforms
+    for (const name in this.uniformTargets) u[name].value = this.uniformTargets[name]
+    u.uScroll.value = this.scrollTarget
+    u.uOpacity.value = this.opacityTarget
+    u.uColorMix.value = this.colorMode === 1 ? 1 : 0
+    u.uBlueMix.value = this.colorMode === 2 ? 1 : 0
+    this.points.position.x = this.offsetTarget * this.viewSize.w
+    this.points.position.y = (this.offsetYTarget || 0) * this.viewSize.h
+    this.userRot.x = this.userRot.y = this.userRot.vx = this.userRot.vy = 0
   }
 
   /** Inverse de l'apparition : l'image affichée se défait en nuage dispersé et invisible. */
   #disperse() {
+    if (this.phase === 'dispersing') return
+    this.phase = 'dispersing'
+    this.nextImage = null
     const b = this.buf
     const rand = this.rand
     b.from.set(b.to)
@@ -339,6 +355,8 @@ export class PointCloud {
       this.progress = 0
     }
     this.morphDuration = MORPH_DURATION
+    this.phase = 'shown'
+    this.#snapSettings()
     b.to.set(data.pos)
     b.colTo.set(data.col)
     b.toneTo.set(data.tone)
@@ -422,33 +440,25 @@ export class PointCloud {
 
     // valeurs amorties, indépendantes du framerate
     const k = 1 - Math.pow(0.001, dt)
-    u.uScroll.value += (this.scrollTarget - u.uScroll.value) * k
-    // image demandée pas encore prête : on n'affiche pas l'ancienne en attendant (ex. accueil avant contact)
-    const waiting = this.wanted && this.wanted !== this.currentKey
-    if (this.swap?.disperse) {
-      // l'accueil se disperse (apparition à l'envers), puis l'image suivante se rassemble
+    // pendant la disparition, l'image garde ses propres réglages (rien ne glisse vers ceux de la suivante)
+    if (this.phase === 'dispersing') {
       if (this.progress >= 1) {
-        const { key, data } = this.swap
-        this.swap = null
-        if (this.wanted === key) this.#apply(key, data, false)
+        this.phase = 'hidden'
+        const next = this.nextImage
+        this.nextImage = null
+        if (next && this.wanted === next.key) this.#apply(next.key, next.data, false)
       }
-      u.uOpacity.value += (this.opacityTarget - u.uOpacity.value) * k
-    } else if (this.swap) {
-      // l'image précédente s'efface vite, puis la suivante apparaît
-      u.uOpacity.value *= Math.pow(0.0005, dt)
-      if (u.uOpacity.value < 0.03) {
-        const { key, data } = this.swap
-        this.swap = null
-        if (this.wanted === key) this.#apply(key, data, false)
-      }
-    } else u.uOpacity.value += ((waiting ? 0 : this.opacityTarget) - u.uOpacity.value) * k
-    for (const name in this.uniformTargets) u[name].value += (this.uniformTargets[name] - u[name].value) * k
-    u.uColorMix.value += ((this.colorMode === 1 ? 1 : 0) - u.uColorMix.value) * k
-    u.uBlueMix.value += ((this.colorMode === 2 ? 1 : 0) - u.uBlueMix.value) * k
-    const ox = this.offsetTarget * this.viewSize.w
-    this.points.position.x += (ox - this.points.position.x) * (1 - Math.pow(0.02, dt))
-    const oy = (this.offsetYTarget || 0) * this.viewSize.h
-    this.points.position.y += (oy - this.points.position.y) * (1 - Math.pow(0.02, dt))
+    } else {
+      u.uScroll.value += (this.scrollTarget - u.uScroll.value) * k
+      u.uOpacity.value += ((this.phase === 'hidden' ? 0 : this.opacityTarget) - u.uOpacity.value) * k
+      for (const name in this.uniformTargets) u[name].value += (this.uniformTargets[name] - u[name].value) * k
+      u.uColorMix.value += ((this.colorMode === 1 ? 1 : 0) - u.uColorMix.value) * k
+      u.uBlueMix.value += ((this.colorMode === 2 ? 1 : 0) - u.uBlueMix.value) * k
+      const ox = this.offsetTarget * this.viewSize.w
+      this.points.position.x += (ox - this.points.position.x) * (1 - Math.pow(0.02, dt))
+      const oy = (this.offsetYTarget || 0) * this.viewSize.h
+      this.points.position.y += (oy - this.points.position.y) * (1 - Math.pow(0.02, dt))
+    }
 
     const { w, h } = this.viewSize
     this.mouseWorld.set((this.mouse.x * w) / 2 - this.points.position.x, (this.mouse.y * h) / 2 - this.points.position.y, 0)
