@@ -1,5 +1,6 @@
 import manifest from './media-manifest.json'
 import { projects } from './content.js'
+import { lang, tr, ui } from './i18n.js'
 
 /**
  * Fiche projet : même mécanique que la référence.
@@ -23,14 +24,14 @@ const isSmall = (item) => !item.youtube && sizeOf(item)[0] < SMALL_WIDTH
 function img(item, eager) {
   const src = item.youtube ? item.poster : item.src
   const [w, h] = sizeOf(item)
-  return `<img class="media__img" src="${mediaUrl(src)}" alt="${esc(item.alt)}" width="${w}" height="${h}" ${
+  return `<img class="media__img" src="${mediaUrl(src)}" alt="${esc(tr(item.alt))}" width="${w}" height="${h}" ${
     eager ? 'fetchpriority="high"' : 'loading="lazy"'
   } decoding="async" />`
 }
 
 function single(item, i) {
   const play = item.youtube
-    ? `<button class="media__play" type="button" data-youtube="${esc(item.youtube)}" aria-label="Lire la vidéo : ${esc(item.alt)}"><span>Lire le film</span></button>`
+    ? `<button class="media__play" type="button" data-youtube="${esc(item.youtube)}" aria-label="${esc(tr(ui.playVideo))} : ${esc(tr(item.alt))}"><span>${esc(tr(ui.playFilm))}</span></button>`
     : ''
   return `<div class="media">${img(item, i < 2)}${play}</div>`
 }
@@ -95,6 +96,7 @@ export class CaseView {
   }
 
   render(project) {
+    this.project = project
     const index = projects.indexOf(project)
     const next = projects[(index + 1) % projects.length]
     this.nextSlug = next.slug
@@ -104,17 +106,17 @@ export class CaseView {
       <div class="case__wrapper">
         <div class="case__title-wrapper">
           <h1 id="case-title">${esc(project.title)}</h1>
-          <p>${esc(project.text)}</p>
+          <p>${esc(tr(project.text))}</p>
           <div class="case__infos">
             ${project.infos
               .map(
                 ([k, v]) =>
-                  `<p class="info-item"><span class="info-category">${esc(k)} :</span><b>//</b><span class="info-value">${esc(v)}</span></p>`,
+                  `<p class="info-item"><span class="info-category">${esc(tr(k))}${lang === 'fr' ? ' :' : ':'}</span><b>//</b><span class="info-value">${esc(tr(v))}</span></p>`,
               )
               .join('')}
             ${
               project.link
-                ? `<a class="case__link" href="${esc(project.link.href)}" target="_blank" rel="noopener"><span>${esc(project.link.label)}</span></a>`
+                ? `<a class="case__link" href="${esc(project.link.href)}" target="_blank" rel="noopener"><span>${esc(tr(project.link.label))}</span></a>`
                 : ''
             }
           </div>
@@ -123,13 +125,13 @@ export class CaseView {
           ${layout(project.media)}
         </div>
         <a class="case__next" href="#/${next.slug}">
-          <small>Projet suivant</small>
+          <small>${esc(tr(ui.next))}</small>
           <strong>${esc(next.title)}</strong>
           <span class="case__pull" aria-hidden="true"><span></span></span>
-          <em>Continuez à défiler</em>
+          <em>${esc(tr(ui.keepScrolling))}</em>
         </a>
       </div>
-      <div class="case__close"><button type="button" data-close>Fermer</button></div>`
+      <div class="case__close"><button type="button" data-close>${esc(tr(ui.close))}</button></div>`
 
     this.wrapper = this.el.querySelector('.case__wrapper')
     this.spacer = this.el.querySelector('.case__spacer')
@@ -235,6 +237,17 @@ export class CaseView {
       void this.el.offsetWidth
       this.#enter(project)
     }
+  }
+
+  /** Changement de langue : la fiche ouverte est réécrite à la même position. */
+  relang() {
+    if (!this.isOpen || !this.project) return
+    const top = this.el.scrollTop
+    this.render(this.project)
+    this.#measure()
+    this.el.scrollTop = top
+    this.current = Math.min(top, this.travel || 0)
+    this.#onScroll()
   }
 
   close() {

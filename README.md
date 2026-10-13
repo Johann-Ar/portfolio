@@ -28,7 +28,9 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
   ou « Prismes » (7 barres en étoile, comme la référence), au choix dans le panneau P ;
 - mobile et tactile : nuage atténué et décalé sous la liste des projets, fiche projet en colonne (aussi sur tablette
   en portrait), pas de « souris fantôme » après un toucher, raccourcis clavier masqués ;
-- typos libres : Instrument Serif (titres), Figtree (texte), IBM Plex Mono (étiquettes).
+- français / anglais : bouton FR / EN dans la barre du haut (langue du navigateur par défaut, choix mémorisé,
+  `?lang=en` force l'anglais) ; les textes changent sur place sans recharger la 3D ;
+- typos libres : Bricolage Grotesque variable (titres, taille optique), Figtree (texte), IBM Plex Mono (étiquettes).
 
 ## Lancer en local
 
@@ -45,7 +47,8 @@ Tout est dans **`src/content.js`** : textes, ordre des projets, galeries, liens,
 
 | Je veux…                         | Où                                              |
 | -------------------------------- | ----------------------------------------------- |
-| changer un texte                 | `src/content.js`                                |
+| changer un texte                 | `src/content.js` — `L('français', 'english')`   |
+| changer un libellé d'interface   | `src/i18n.js` (objet `ui`)                      |
 | ajouter / réordonner un projet   | tableau `projects` dans `src/content.js`        |
 | changer l'image du nuage d'un projet | champ `cloud` du projet (couverture du portfolio) |
 | changer les couleurs, typos      | variables en haut de `src/styles/main.css` (`--font-display` pour la typo des titres) |

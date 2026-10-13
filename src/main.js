@@ -1,4 +1,4 @@
-import '@fontsource/instrument-serif/latin-400.css'
+import '@fontsource-variable/bricolage-grotesque/opsz.css'
 import '@fontsource/figtree/latin-400.css'
 import '@fontsource/figtree/latin-600.css'
 import '@fontsource/figtree/latin-700.css'
@@ -9,6 +9,7 @@ import Lenis from 'lenis'
 import { site, skills, about, timeline, projects } from './content.js'
 import { CaseView } from './case.js'
 import { SplatPanel } from './panel.js'
+import { lang, tr, ui, setLang, onLang } from './i18n.js'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -35,26 +36,40 @@ let logo = null
 // les compétences, réparties en lignes qui glissent en sens opposés au scroll
 const rows = [[], [], []]
 skills.forEach((s, i) => rows[i % rows.length].push(s))
+const rowText = (row, i) => row.map((w, j) => (j < row.length - 1 || i < rows.length - 1 ? `${tr(w)},` : tr(w))).join(' ')
+const tagText = (p) => `// ${tr(p.tag)}`
+const timelineCol = (col) => `
+          <h3>${esc(tr(col.title))}</h3>
+          <ul>
+            ${col.items
+              .map(
+                (it) => `<li>
+                  <span class="timeline__year">${esc(tr(it.year))}</span>
+                  <span><b>${esc(tr(it.name))}</b>${tr(it.detail) ? `<br />${esc(tr(it.detail))}` : ''}</span>
+                </li>`,
+              )
+              .join('')}
+          </ul>`
 
 const app = document.getElementById('app')
 app.innerHTML = `
   <section class="hero" id="top" data-cloud="hero">
-    <h1 class="u-visually-hidden">${esc(site.name)}, ${esc(site.role.toLowerCase())}</h1>
-    <p class="hero__intro words" data-words>${esc(site.intro)}</p>
-    <span class="hero__scroll" aria-hidden="true">Défiler</span>
+    <h1 class="u-visually-hidden">${esc(site.name)}, <span data-t="role">${esc(tr(ui.role))}</span></h1>
+    <p class="hero__intro words" data-words>${esc(tr(site.intro))}</p>
+    <span class="hero__scroll" aria-hidden="true" data-t="scroll">${esc(tr(ui.scroll))}</span>
   </section>
 
   <section class="work" id="projets" data-cloud="project" aria-labelledby="work-title">
     <div class="work__stage" aria-hidden="true"></div>
     <div class="work__inner">
-      <h2 class="section-title reveal" id="work-title">Projets choisis</h2>
+      <h2 class="section-title reveal" id="work-title" data-t="workTitle">${esc(tr(ui.workTitle))}</h2>
       <ul class="work__list">
         ${projects
           .map(
             (p, i) => `
           <li class="reveal" style="--i:${i}">
             <a class="work-link" href="#/${p.slug}" data-slug="${p.slug}">
-              <b>${esc(p.title)}</b><span>// ${esc(p.tag)}</span>
+              <b>${esc(p.title)}</b><span>${esc(tagText(p))}</span>
             </a>
           </li>`,
           )
@@ -63,38 +78,20 @@ app.innerHTML = `
     </div>
   </section>
 
-  <section class="skills" aria-label="Compétences" data-cloud="none">
-    ${rows
-      .map(
-        (row, i) =>
-          `<p class="skills__row" data-dir="${i % 2 ? -1 : 1}">${row
-            .map((w, j) => esc(j < row.length - 1 || i < rows.length - 1 ? `${w},` : w))
-            .join(' ')}</p>`,
-      )
-      .join('')}
+  <section class="skills" aria-label="${esc(tr(ui.skills))}" data-cloud="none">
+    ${rows.map((row, i) => `<p class="skills__row" data-dir="${i % 2 ? -1 : 1}">${esc(rowText(row, i))}</p>`).join('')}
   </section>
 
   <section class="about" id="a-propos" data-cloud="none" aria-labelledby="about-title">
-    <h2 class="section-title section-title--center reveal" id="about-title">À propos</h2>
+    <h2 class="section-title section-title--center reveal" id="about-title" data-t="about">${esc(tr(ui.about))}</h2>
     <div class="about__text">
-      ${about.map((p) => `<p class="words" data-words>${bold(p)}</p>`).join('')}
+      ${about.map((p) => `<p class="words" data-words>${bold(tr(p))}</p>`).join('')}
     </div>
     <div class="timeline">
       ${timeline
         .map(
           (col, i) => `
-        <div class="reveal" style="--i:${i}">
-          <h3>${esc(col.title)}</h3>
-          <ul>
-            ${col.items
-              .map(
-                (it) => `<li>
-                  <span class="timeline__year">${esc(it.year)}</span>
-                  <span><b>${esc(it.name)}</b>${it.detail ? `<br />${esc(it.detail)}` : ''}</span>
-                </li>`,
-              )
-              .join('')}
-          </ul>
+        <div class="reveal" style="--i:${i}">${timelineCol(col)}
         </div>`,
         )
         .join('')}
@@ -117,13 +114,13 @@ app.innerHTML = `
 
   <footer class="footer">
     <span>© ${new Date().getFullYear()} ${esc(site.name)}</span>
-    <span class="footer__key"><kbd>Espace</kbd> mono / couleur / bleu <kbd>B</kbd> autre rendu <kbd>V</kbd> volumétrie SHARP <kbd>P</kbd> réglages</span>
-    <span>${esc(site.role)} — ${esc(site.location)}</span>
+    <span class="footer__key" data-t="keys">${tr(ui.keys)}</span>
+    <span><span data-t="role">${esc(tr(ui.role))}</span> — ${esc(site.location)}</span>
   </footer>
 `
 
 /* Découpe en mots pour l'apparition mot à mot */
-document.querySelectorAll('[data-words]').forEach((el) => {
+function splitWords(el) {
   let i = 0
   const walk = (node) => {
     for (const child of [...node.childNodes]) {
@@ -143,7 +140,43 @@ document.querySelectorAll('[data-words]').forEach((el) => {
     }
   }
   walk(el)
-})
+}
+document.querySelectorAll('[data-words]').forEach(splitWords)
+
+/* ------------------------------------------------------------------
+   Langue (FR / EN) : les textes changent sur place, sans recharger le WebGL
+------------------------------------------------------------------- */
+
+const langBtn = document.querySelector('.lang-switch')
+const metaDesc = document.querySelector('meta[name="description"]')
+function applyLang() {
+  root.lang = lang
+  document.querySelectorAll('[data-t]').forEach((el) => (el.innerHTML = tr(ui[el.dataset.t])))
+  document.querySelectorAll('[data-t-label]').forEach((el) => el.setAttribute('aria-label', tr(ui[el.dataset.tLabel])))
+  document.querySelector('.skills').setAttribute('aria-label', tr(ui.skills))
+  const intro = document.querySelector('.hero__intro')
+  intro.textContent = tr(site.intro)
+  splitWords(intro)
+  document.querySelectorAll('.about__text p').forEach((el, i) => {
+    el.innerHTML = bold(tr(about[i]))
+    splitWords(el)
+  })
+  document.querySelectorAll('.work-link').forEach((l) => {
+    const p = projects.find((x) => x.slug === l.dataset.slug)
+    l.querySelector('span').textContent = tagText(p)
+  })
+  document.querySelectorAll('.skills__row').forEach((el, i) => (el.textContent = rowText(rows[i], i)))
+  document.querySelectorAll('.timeline > div').forEach((el, i) => (el.innerHTML = timelineCol(timeline[i])))
+  metaDesc?.setAttribute('content', tr(ui.description))
+  baseTitle = `${site.name} — ${tr(ui.role)}`
+  if (!caseView?.isOpen) document.title = baseTitle
+  caseView?.relang()
+  langBtn.querySelectorAll('[data-lang]').forEach((b) => b.classList.toggle('is-active', b.dataset.lang === lang))
+  langBtn.setAttribute('aria-label', tr(ui.langSwitch))
+  langBtn.setAttribute('lang', lang === 'fr' ? 'en' : 'fr')
+}
+langBtn.addEventListener('click', () => setLang(lang === 'fr' ? 'en' : 'fr'))
+onLang(applyLang)
 
 const revealObserver = new IntersectionObserver(
   (entries) => {
@@ -433,7 +466,8 @@ window.addEventListener(
 ------------------------------------------------------------------- */
 
 const caseView = new CaseView(document.getElementById('case'), { onClose: () => closeRoute() })
-const baseTitle = document.title
+let baseTitle = document.title
+applyLang() // langue mémorisée ou celle du navigateur
 const background = [app, document.querySelector('.topbar')]
 let lastLink = null
 

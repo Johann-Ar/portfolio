@@ -1,13 +1,15 @@
 /* ------------------------------------------------------------------
    Johann Arata — portfolio
-   Thème sombre par défaut, thème clair (noir et blanc) en option.
+   Thème sombre.
    Fond : halos de la palette du site (rose bonbon #FF98E5, bleu lavande #B2A3E9,
    vert menthe #98DDBE, rose corail #F799AB).
-   Titres : Instrument Serif · Texte : Figtree · Étiquettes : IBM Plex Mono
+   Titres : Bricolage Grotesque (variable, taille optique) · Texte : Figtree · Étiquettes : IBM Plex Mono
 ------------------------------------------------------------------- */
 
 :root {
-  --font-display: 'Instrument Serif', 'Times New Roman', serif;
+  --font-display: 'Bricolage Grotesque Variable', 'Figtree', system-ui, sans-serif;
+  --display-weight: 560;
+  --display-track: -0.035em;
   --font-sans: 'Figtree', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
@@ -1156,4 +1158,58 @@ html.case-open {
     font-size: 1.15rem;
     word-break: break-all;
   }
+}
+
+/* ---------- Typo identitaire : Bricolage Grotesque ---------- */
+.section-title,
+.skills__row,
+.case__title-wrapper h1,
+.case__next strong,
+.loader__count {
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
+  font-optical-sizing: auto;
+}
+.section-title,
+.case__title-wrapper h1 {
+  line-height: 0.95;
+}
+.skills__row {
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+}
+.case__close button {
+  font-weight: 500;
+  font-size: 1.4rem;
+}
+
+/* ---------- Bascule de langue FR / EN ---------- */
+.lang-switch {
+  display: inline-flex;
+  gap: 0.35em;
+  padding: 0.35em 0;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: inherit;
+  text-shadow: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.lang-switch span {
+  opacity: 0.4;
+  transition: opacity 0.25s ease;
+}
+.lang-switch span.is-active,
+.lang-switch:hover span {
+  opacity: 1;
+}
+.lang-switch:hover span:not(.is-active) {
+  opacity: 0.7;
+}
+.lang-switch span + span::before {
+  content: '/';
+  margin-right: 0.35em;
+  opacity: 0.4;
 }
