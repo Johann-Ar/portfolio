@@ -264,7 +264,8 @@ body {
   right: 0;
   z-index: 50;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end; /* seul le changement de langue reste */
+  pointer-events: none; /* la barre ne bloque pas les clics sur la page, sauf le bouton */
   align-items: center;
   padding: 26px var(--edge);
   font-size: var(--nav-size);
@@ -279,40 +280,10 @@ body {
   opacity: 0;
   pointer-events: none;
 }
-.topbar__nav {
-  display: flex;
-  align-items: center;
-  gap: 1.6rem;
-}
-.topbar a {
-  position: relative;
-}
-.topbar a::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: -2px;
-  width: 100%;
-  height: 1px;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: right;
-  transition: transform 0.35s var(--ease);
-}
-.topbar a:hover::after {
-  transform: scaleX(1);
-  transform-origin: left;
-}
 @media (max-width: 768px) {
   .topbar {
     padding: 18px var(--edge);
     font-size: 0.8rem;
-  }
-  .topbar__nav {
-    gap: 0.9rem;
-  }
-  .topbar__nav a[href='#a-propos'] {
-    display: none; /* mobile : Projets et Contact seulement */
   }
 }
 
@@ -1190,6 +1161,7 @@ html.case-open {
 
 /* ---------- Bascule de langue FR / EN ---------- */
 .lang-switch {
+  pointer-events: auto;
   display: inline-flex;
   gap: 0.35em;
   padding: 0.35em 0;
