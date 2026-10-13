@@ -13,6 +13,8 @@ const SLIDERS = [
   { key: 'push', label: 'Distance', min: -15, max: 60, step: 0.5 },
   { key: 'curve', label: 'Courbure (− sphère / + concave)', min: -1.5, max: 1.5, step: 0.01 },
   { key: 'opacity', label: 'Opacité', min: 0.1, max: 2, step: 0.01 },
+  { key: 'glass', label: 'Verre', min: 0, max: 3, step: 0.01 },
+  { key: 'reflect', label: 'Reflets du fond', min: 0, max: 4, step: 0.01 },
   { key: 'mouseRadius', label: 'Rayon souris', min: 0, max: 10, step: 0.1 },
   { key: 'mouseForce', label: 'Force souris', min: 0, max: 4, step: 0.05 },
   { key: 'breath', label: 'Respiration', min: 0, max: 6, step: 0.05 },

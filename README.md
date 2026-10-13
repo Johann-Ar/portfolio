@@ -7,7 +7,8 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
 (défilement vertical qui fait glisser un bloc horizontal : texte + infos, puis images de 100 % de hauteur).
 - « splat » : chaque image devient une grille de points (un par pixel échantillonné), avec sa couleur ;
   **la luminance détermine la profondeur**. Touche **Espace** : monochrome → couleurs → monochrome bleu ; **B** : ancien rendu de l'accueil ; **P** : panneau de réglages
-  (taille des points, relief, distance, courbure, opacité, souris, respiration, parallaxe — mémorisés dans le navigateur) ;
+  (taille des points, relief, distance, courbure, opacité, verre, reflets du fond, souris, respiration, parallaxe — mémorisés dans le navigateur) ;
+- effet verre : chaque point est une bille qui reflète les couleurs du fond situées derrière elle ;
 - accueil et contact : images reculées, bord à bord, profondeur inversée (clair = loin), courbure concave réglable ;
 - accueil : photo plein écran qui déborde du cadre ; section Projets : couverture du projet survolé,
   rotation limitée au glisser ;

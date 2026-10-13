@@ -32,6 +32,7 @@ uniform float uScreenScale;
 uniform float uMotion;
 
 varying vec4 vColor;
+varying vec2 vScreen; // position à l'écran (0 à 1), pour lire les couleurs du fond
 
 float easeInOutCubic(float t) {
   return t < 0.5 ? 4.0 * t * t * t : 1.0 - pow(-2.0 * t + 2.0, 3.0) / 2.0;
@@ -75,6 +76,7 @@ void main() {
 
   vec4 mv = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mv;
+  vScreen = gl_Position.xy / gl_Position.w * 0.5 + 0.5;
   // une cellule couvre sa place dans la grille : l'image reste continue
   gl_PointSize = max(1.0, cell * uSizeFactor * uScreenScale / -mv.z);
 

@@ -34,6 +34,8 @@ export const DEFAULT_SETTINGS = {
   breath: 5.15, // respiration
   parallax: 1.05, // parallaxe à la souris
   curve: 0.45, // courbure des images plein écran : > 0 concave, < 0 sphérique
+  glass: 1, // effet verre (bille, reflet, bord lumineux)
+  reflect: 2.2, // intensité des couleurs du fond reflétées
 }
 
 const MORPH_DURATION = 1.8
@@ -157,6 +159,9 @@ export class PointCloud {
       uCamZ: { value: CAM_Z },
       uCurve: { value: DEFAULT_SETTINGS.curve },
       uViewH: { value: 1 },
+      uGlass: { value: DEFAULT_SETTINGS.glass },
+      uReflect: { value: DEFAULT_SETTINGS.reflect },
+      uAspect: { value: 1 },
       uScreenScale: { value: 1 },
       uMotion: { value: this.reducedMotion ? 0 : 1 },
     }
@@ -189,6 +194,7 @@ export class PointCloud {
     this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
     this.uniforms.uViewH.value = this.viewSize.h
+    this.uniforms.uAspect.value = w / h
     // pixels écran par unité monde à distance 1 : une cellule de la grille couvre exactement sa place
     this.uniforms.uScreenScale.value = (h * dpr) / (2 * Math.tan((this.camera.fov * Math.PI) / 360))
 
@@ -206,7 +212,7 @@ export class PointCloud {
   set(name, value) {
     this.settings[name] = value
     const u = this.uniforms
-    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve' }
+    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect' }
     if (map[name]) u[map[name]].value = value
     if (name === 'mouseRadius') u.uMouseRadius.value = value * (this.isSmall ? 0.7 : 1)
   }
