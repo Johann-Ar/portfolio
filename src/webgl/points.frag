@@ -1,12 +1,68 @@
 varying vec4 vColor;
 varying vec2 vScreen;
 varying float vSize;
+varying vec2 vCell;
+varying float vHole;
 
 uniform float uGlass;    // effet verre : bille, reflet spéculaire, bord lumineux
 uniform float uReflect;  // intensité des couleurs du fond reflétées
 uniform float uLight;
 uniform float uAspect;
 uniform float uVeilTint; // calque couleurs posé uniquement sur les points
+uniform float uRgb;      // effet « pixels RVB » : chaque point devient un pixel d'écran vu au microscope
+uniform float uRgbPattern; // 0 : LCD (bandes R, V, B), 1 : OLED PenTile (losanges)
+uniform float uRgbGlow;  // halo lumineux autour des sous-pixels
+uniform float uSizeFactor;
+
+// rectangle arrondi (distance signée), pour les sous-pixels
+float roundRect(vec2 p, vec2 hs, float r) {
+  vec2 d = abs(p) - hs + r;
+  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r;
+}
+
+/**
+ * Pixel d'écran vu au microscope. p : position dans le point (-1 à 1), y vers le haut.
+ * Renvoie la couleur émise (prémultipliée) et la couverture dans alpha.
+ */
+vec4 subpixels(vec2 p, vec3 rgb, float aa) {
+  vec3 col = vec3(0.0);
+  float cover = 0.0;
+  // le luminophore paraît plus intense que la moyenne du pixel : on compense la surface éteinte
+  vec3 c = clamp(rgb, 0.0, 1.0);
+  if (uRgbPattern < 0.5) {
+    // LCD : trois bandes verticales R, V, B, coins arrondis, fin joint noir
+    float col3 = clamp(floor((p.x + 1.0) * 1.5), 0.0, 2.0);
+    float cx = -1.0 + (col3 + 0.5) * (2.0 / 3.0);
+    vec2 lp = vec2(p.x - cx, p.y);
+    float d = roundRect(lp, vec2(0.26, 0.82), 0.12);
+    float shape = 1.0 - smoothstep(-aa, aa, d);
+    float glow = exp(-max(d, 0.0) * 9.0) * uRgbGlow;
+    vec3 mask = col3 < 0.5 ? vec3(1.0, 0.0, 0.0) : (col3 < 1.5 ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0));
+    float v = dot(c, mask);
+    col = mask * v * (shape * 2.4 + glow * 0.8);
+    cover = max(shape, glow * 0.6) * (0.25 + 0.75 * v);
+  } else {
+    // OLED PenTile : losanges ; les cases paires portent un vert (petit), les impaires rouge ou bleu (grand)
+    float even = mod(vCell.x + vCell.y, 2.0);
+    vec3 mask;
+    float size;
+    if (even < 0.5) {
+      mask = vec3(0.0, 1.0, 0.0);
+      size = 0.48;
+    } else {
+      mask = mod(vCell.x, 2.0) < 0.5 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0);
+      size = 0.72;
+    }
+    float d = (abs(p.x) + abs(p.y)) - size; // losange
+    float shape = 1.0 - smoothstep(-aa * 1.4, aa * 1.4, d);
+    float glow = exp(-max(d, 0.0) * 6.0) * uRgbGlow;
+    // la sous-trame reçoit la couleur du pixel complet (le voisinage compense la teinte absente)
+    float v = dot(c, mask) * 0.7 + dot(c, vec3(0.2126, 0.7152, 0.0722)) * 0.3;
+    col = mask * v * (shape * 2.6 + glow * 0.9);
+    cover = max(shape, glow * 0.6) * (0.25 + 0.75 * v);
+  }
+  return vec4(col, cover);
+}
 
 // Les couleurs du fond de la page (mêmes positions que le dégradé CSS .backdrop)
 vec3 backdrop(vec2 uv) {
@@ -35,10 +91,11 @@ void main() {
   vec2 q = gl_PointCoord * 2.0 - 1.0;
   q.y = -q.y;
   float r2 = dot(q, q);
-  if (r2 > 1.0) discard;
+  if (r2 > 1.0 && uRgb < 0.01) discard;
+  float inside = step(r2, 1.0);
 
   // chaque point est une petite bille : normale de sphère
-  vec3 n = vec3(q, sqrt(1.0 - r2));
+  vec3 n = vec3(q, sqrt(max(0.0, 1.0 - r2)));
   float fresnel = pow(1.0 - n.z, 2.0);
   float spec = pow(max(dot(n, normalize(vec3(-0.45, 0.55, 1.0))), 0.0), 28.0);
 
@@ -62,6 +119,22 @@ void main() {
   float r = sqrt(r2);
   float aa = clamp(2.0 / vSize, 0.04, 0.6);
   float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
-  float alpha = vColor.a * edge * mix(1.0, 0.65 + 0.35 * fresnel + spec, clamp(uGlass, 0.0, 1.0) * 0.5);
+  float alpha = inside * vColor.a * edge * mix(1.0, 0.65 + 0.35 * fresnel + spec, clamp(uGlass, 0.0, 1.0) * 0.5);
+
+  // pixels RVB : le point devient un pixel d'écran (sous-pixels rouge, vert, bleu)
+  if (uRgb > 0.001) {
+    // coordonnées dans la case de la grille (le point peut déborder si la taille > 1) : joints noirs entre pixels
+    vec2 cq = q * max(uSizeFactor, 0.05);
+    float inCell = step(max(abs(cq.x), abs(cq.y)), 1.0);
+    vec4 sp = subpixels(cq, rgb, clamp(2.5 / (vSize / max(uSizeFactor, 0.05)), 0.03, 0.5));
+    sp *= inCell;
+    vec3 spCol = sp.a > 0.0 ? sp.rgb / sp.a : vec3(0.0);
+    float spA = sp.a * min(vColor.a * 1.4, 1.0);
+    rgb = mix(rgb, spCol, uRgb);
+    alpha = mix(alpha, spA, uRgb);
+  }
+  // horizon du trou noir : les points s'éteignent au centre
+  alpha *= 1.0 - vHole;
+  if (alpha < 0.004) discard;
   gl_FragColor = vec4(clamp(rgb, 0.0, 1.0), alpha);
 }

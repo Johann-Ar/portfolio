@@ -15,6 +15,10 @@ export const DEFAULT_SETTINGS = {
   veil: 0.4, // calque aux couleurs du fond par-dessus l'accueil et le contact
   veilMode: 'over', // placement du calque : 'front' devant tout, 'over' sur l'image, 'behind' derrière, 'points' seulement les points
   vignette: 0, // vignettage (bords assombris)
+  cursor: 'hole', // effet du curseur : 'hole' (trou noir) ou 'repel' (écarte les points)
+  rgb: 0, // effet « pixels RVB » (0 à 1)
+  rgbPattern: 'lcd', // 'lcd' (bandes R, V, B) ou 'oled' (PenTile en losanges)
+  rgbGlow: 0.5, // halo des sous-pixels
   glassShape: 'logo', // élément 3D de l'accueil : 'logo' ou 'prisms' (comme la référence)
   glassIor: 0.13, // intensité de la réfraction
   glassRough: 0.2, // étalement de la dispersion

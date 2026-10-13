@@ -17,6 +17,8 @@ const SLIDERS = [
   { key: 'contrast', label: 'Contraste', min: 0, max: 3, step: 0.01 },
   { key: 'veil', label: 'Calque couleurs (accueil, contact)', min: 0, max: 1, step: 0.01 },
   { key: 'vignette', label: 'Vignettage', min: 0, max: 1, step: 0.01 },
+  { key: 'rgb', label: 'Pixels RVB', min: 0, max: 1, step: 0.01 },
+  { key: 'rgbGlow', label: 'Pixels RVB : halo', min: 0, max: 2, step: 0.01 },
   { key: 'glass', label: 'Verre', min: 0, max: 3, step: 0.01 },
   { key: 'reflect', label: 'Reflets du fond', min: 0, max: 4, step: 0.01 },
   { key: 'glassIor', label: 'Verre 3D : réfraction', min: 0, max: 0.6, step: 0.005 },
@@ -103,6 +105,16 @@ export class SplatPanel {
         <button type="button" data-veil="behind" title="Derrière l'image">Derrière</button>
         <button type="button" data-veil="points" title="Teinte seulement les points">Points</button>
       </div>
+      <span class="splat-panel__label">Curseur</span>
+      <div class="splat-panel__row splat-panel__modes splat-panel__modes--2" role="group" aria-label="Effet du curseur">
+        <button type="button" data-cursor="hole">Trou noir</button>
+        <button type="button" data-cursor="repel">Écarte</button>
+      </div>
+      <span class="splat-panel__label">Pixels RVB</span>
+      <div class="splat-panel__row splat-panel__modes splat-panel__modes--2" role="group" aria-label="Motif des pixels RVB">
+        <button type="button" data-rgb="lcd" title="Bandes rouge, vert, bleu (écran LCD)">LCD</button>
+        <button type="button" data-rgb="oled" title="Losanges PenTile (écran OLED de téléphone)">OLED</button>
+      </div>
       <label class="splat-panel__check"><input type="checkbox" data-hero-old /> Ancien rendu de l’accueil (B)</label>
       ${SLIDERS.map(
         (s) => `<label class="splat-panel__slider">
@@ -137,6 +149,22 @@ export class SplatPanel {
         for (const p of Object.values(this.profiles)) p.glassShape = shape.dataset.shape // forme commune
         save(this.profiles)
         this.#apply('glassShape')
+        this.sync()
+      }
+      const cur = e.target.closest('[data-cursor]')
+      if (cur) {
+        this.settings.cursor = cur.dataset.cursor
+        save(this.profiles)
+        this.#apply('cursor')
+        this.sync()
+      }
+      const rgbBtn = e.target.closest('[data-rgb]')
+      if (rgbBtn) {
+        this.settings.rgbPattern = rgbBtn.dataset.rgb
+        if (!this.settings.rgb) this.settings.rgb = 1 // choisir un motif active l'effet
+        save(this.profiles)
+        this.#apply('rgbPattern')
+        this.#apply('rgb', true)
         this.sync()
       }
       const veil = e.target.closest('[data-veil]')
@@ -201,6 +229,8 @@ export class SplatPanel {
     const mode = this.getCloud()?.colorMode ?? 0
     this.el.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.mode) === mode)))
     this.el.querySelector('[data-hero-old]').checked = this.getHeroOld()
+    this.el.querySelectorAll('[data-cursor]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cursor === this.settings.cursor)))
+    this.el.querySelectorAll('[data-rgb]').forEach((b) => b.setAttribute('aria-pressed', String(this.settings.rgb > 0 && b.dataset.rgb === this.settings.rgbPattern)))
     this.el.querySelectorAll('[data-veil]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.veil === this.settings.veilMode)))
     this.el.querySelectorAll('[data-shape]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.shape === this.settings.glassShape)))
     const vol = this.getVolume()
