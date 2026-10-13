@@ -6,7 +6,7 @@ import { PROFILES, PROFILE_LABELS, profileDefaults } from './webgl/settings.js'
  * celui de la section affichée. Modifications mémorisées dans ce navigateur.
  */
 
-const STORAGE_KEY = 'splat-settings-v13'
+const STORAGE_KEY = 'splat-settings-v14'
 
 const SLIDERS = [
   { key: 'size', label: 'Taille des points', min: 0.2, max: 2.5, step: 0.01 },
@@ -100,6 +100,12 @@ export class SplatPanel {
         <button type="button" data-shape="logo">Logo</button>
         <button type="button" data-shape="prisms">Prismes (réf.)</button>
       </div>
+      <span class="splat-panel__label">Forme des points</span>
+      <div class="splat-panel__row splat-panel__modes" role="group" aria-label="Forme des points">
+        <button type="button" data-pshape="round">Rond</button>
+        <button type="button" data-pshape="square">Carré</button>
+        <button type="button" data-pshape="diamond">Losange</button>
+      </div>
       <span class="splat-panel__label">Couleur</span>
       <div class="splat-panel__row splat-panel__modes" role="group" aria-label="Rendu">
         ${MODES.map((m, i) => `<button type="button" data-mode="${i}">${m}</button>`).join('')}
@@ -145,6 +151,13 @@ export class SplatPanel {
         for (const p of Object.values(this.profiles)) p.glassShape = shape.dataset.shape // forme commune
         save(this.profiles)
         this.#apply('glassShape')
+        this.sync()
+      }
+      const ps = e.target.closest('[data-pshape]')
+      if (ps) {
+        this.settings.shape = ps.dataset.pshape
+        save(this.profiles)
+        this.#apply('shape')
         this.sync()
       }
       const veil = e.target.closest('[data-veil]')
@@ -209,6 +222,7 @@ export class SplatPanel {
     const mode = this.getCloud()?.colorMode ?? 0
     this.el.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.mode) === mode)))
     this.el.querySelector('[data-hero-old]').checked = this.getHeroOld()
+    this.el.querySelectorAll('[data-pshape]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pshape === this.settings.shape)))
     this.el.querySelectorAll('[data-veil]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.veil === this.settings.veilMode)))
     this.el.querySelectorAll('[data-shape]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.shape === this.settings.glassShape)))
     const vol = this.getVolume()

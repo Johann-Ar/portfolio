@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS = {
   vignette: 0, // vignettage (bords assombris)
   anim: 0.8, // fumée : l'image se déforme en volutes (les points restent fixes)
   smokeHover: 1.5, // fumée renforcée sous la souris
+  shape: 'round', // forme des points : 'round', 'square' ou 'diamond'
   smokeWarp: 0.3, // déformation de l'image par la fumée (0 : aucune)
   imgVignette: 0, // vignettage appliqué à l'image (ses bords noircissent)
   animSpeed: 1, // vitesse de l'animation
@@ -47,16 +48,18 @@ export const PROFILES = {
     veilMode: 'behind',
     vignette: 1,
     imgVignette: 0,
-    anim: 1.34,
-    animSpeed: 1.35,
-    smokeHover: 0.4,
-    smokeWarp: 0.19,
+    anim: 1.29,
+    animSpeed: 3.4,
+    smokeHover: 4,
+    smokeWarp: 0.12,
     rgb: 0,
     glass: 0,
     reflect: 0,
-    mouseRadius: 5,
-    mouseForce: 1.2,
+    mouseRadius: 3.4,
+    mouseForce: 0,
     breath: 0,
+    rgbGlow: 0.5,
+    parallax: 0.15,
   },
   project: {
     mode: 1,
@@ -82,18 +85,19 @@ export const PROFILES = {
     veilMode: 'points',
     vignette: 0,
     imgVignette: 0,
-    anim: 1.19,
-    animSpeed: 1.15,
+    anim: 0.71,
+    animSpeed: 1.7,
     smokeHover: 1.25,
-    smokeWarp: 0.3,
+    smokeWarp: 1.42,
     rgb: 0,
-    rgbGlow: 0.5,
+    rgbGlow: 0.03,
     glass: 0,
     reflect: 0,
     mouseRadius: 3.2,
     mouseForce: 0,
     breath: 0,
     parallax: 0.25,
+    shape: 'square',
   },
   other: {},
 }

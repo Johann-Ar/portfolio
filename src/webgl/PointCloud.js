@@ -160,6 +160,7 @@ export class PointCloud {
       uToneGain: { value: 1 },
       uSmokeHover: { value: 1.5 },
       uSmokeWarp: { value: 0.3 },
+      uShape: { value: 0 },
       uImgVignette: { value: 0 },
       uAspectRatio: { value: 2 },
       uRgb: { value: 0 },
@@ -217,6 +218,10 @@ export class PointCloud {
   /** Applique un réglage ; sauf `immediate`, la valeur est rejointe en douceur (changement de section). */
   set(name, value, immediate = false) {
     this.settings[name] = value
+    if (name === 'shape') {
+      this.uniforms.uShape.value = { round: 0, square: 1, diamond: 2 }[value] ?? 0
+      return
+    }
     const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect', contrast: 'uContrast', mouseRadius: 'uMouseRadius', veilTint: 'uVeilTint', anim: 'uAnim', animSpeed: 'uAnimSpeed', smokeHover: 'uSmokeHover', smokeWarp: 'uSmokeWarp', imgVignette: 'uImgVignette', rgb: 'uRgb', rgbGlow: 'uRgbGlow' }
     const uniform = map[name]
     if (!uniform) return

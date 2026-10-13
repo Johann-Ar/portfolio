@@ -11,6 +11,7 @@ uniform float uVeilTint; // calque couleurs posé uniquement sur les points
 uniform float uRgb;      // effet « pixels RVB » : chaque point devient un pixel d'écran OLED (PenTile) vu au microscope
 uniform float uRgbGlow;  // halo lumineux autour des sous-pixels
 uniform float uSizeFactor;
+uniform float uShape; // forme des points : 0 rond, 1 carré, 2 losange
 
 
 /**
@@ -71,7 +72,9 @@ void main() {
   if (vColor.a < 0.01) discard;
   vec2 q = gl_PointCoord * 2.0 - 1.0;
   q.y = -q.y;
-  float r2 = dot(q, q);
+  // distance « de forme » : rond, carré ou losange
+  float sd = uShape < 0.5 ? length(q) : (uShape < 1.5 ? max(abs(q.x), abs(q.y)) : (abs(q.x) + abs(q.y)));
+  float r2 = sd * sd;
   if (r2 > 1.0 && uRgb < 0.01) discard;
   float inside = step(r2, 1.0);
 
