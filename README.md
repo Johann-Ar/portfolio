@@ -10,22 +10,24 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
   (taille des points, relief, distance, courbure, opacité, verre, reflets du fond, souris, respiration, parallaxe — mémorisés dans le navigateur) ;
 - fumée (panneau P) : les points restent fixes, l'image se déforme en volutes de fumée dessous (fbm + domain warping),
   plus fort sous la souris ; intensité, vitesse et fumée au survol réglables ;
-- logo « So » incrusté en volume dans l'image d'accueil : `scripts/logo-volume.py` calcule un calque ombré
-  et une carte de hauteur (section de tube) ; le logo 3D en verre est caché par défaut (panneau P : Caché / Logo / Prismes) ;
+- élément 3D en verre caché par défaut (panneau P : Caché / Logo / Prismes) ; un logo en volume reste possible
+  via l'option `overlay` d'`imageTarget` (`scripts/logo-volume.py`) ;
 - pixels RVB (panneau P) : chaque point devient un pixel d'écran OLED (PenTile, losanges) vu au microscope, halo réglable ;
 - effet verre : chaque point est une bille qui reflète les couleurs du fond situées derrière elle ;
 - accueil et contact : images reculées, bord à bord, profondeur inversée (clair = loin), courbure concave réglable ;
-- accueil : photo plein écran qui déborde du cadre ; section Projets : couverture du projet survolé,
+- accueil : photo plein écran qui déborde du cadre ; Compétences et À propos : aucune image ; section Projets : couverture du projet survolé,
   rotation limitée au glisser ;
 - fiches projet : petites images regroupées par deux (bento) ; au bout, continuer à défiler ouvre le projet suivant ;
-- thème sombre par défaut, thème clair noir et blanc ; fond en dégradé de la palette du site, derrière tout
+- thème sombre uniquement ; fond en dégradé de la palette du site, derrière tout
   (rose bonbon `#FF98E5`, bleu lavande `#B2A3E9`, vert menthe `#98DDBE`, rose corail `#F799AB`) ;
 - contact : splat du tableau de Thomas Gainsborough, *View near King's Bromley-on-Trent* ;
 - accueil : élément 3D en verre au centre, même technique que celui de dorianlods.com, réécrite pour Three.js
   (`src/webgl/GlassElement.js`) : la scène derrière le verre et les normales des faces arrière sont rendues
   dans deux textures, puis le verre réfracte avec une dispersion sur 6 longueurs d'onde × 16 échantillons
-  (IOR 1.15 / 1.78 / 1.57 / 1.39 / 1.24 / 1.34), reflets de studio et Fresnel. Forme « Logo » (vague + anneau,
-  par défaut) ou « Prismes » (7 barres en étoile, comme la référence), au choix dans le panneau P ;
+  (IOR 1.15 / 1.78 / 1.57 / 1.39 / 1.24 / 1.34), reflets de studio et Fresnel. Forme « Logo » (vague + anneau)
+  ou « Prismes » (7 barres en étoile, comme la référence), au choix dans le panneau P ;
+- mobile et tactile : nuage atténué et décalé sous la liste des projets, fiche projet en colonne (aussi sur tablette
+  en portrait), pas de « souris fantôme » après un toucher, raccourcis clavier masqués ;
 - typos libres : Instrument Serif (titres), Figtree (texte), IBM Plex Mono (étiquettes).
 
 ## Lancer en local

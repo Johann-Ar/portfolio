@@ -54,7 +54,7 @@ export class CaseView {
     this.el = el
     this.onClose = onClose
     this.isOpen = false
-    this.mobile = window.matchMedia('(max-width: 768px)')
+    this.mobile = window.matchMedia('(max-width: 768px), (max-width: 1100px) and (orientation: portrait)')
 
     this.onKey = (e) => {
       if (e.key === 'Escape') this.onClose()

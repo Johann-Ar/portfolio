@@ -35,7 +35,7 @@ const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
 
 export class PointCloud {
-  constructor(canvas, { color, light = false, reducedMotion = false } = {}) {
+  constructor(canvas, { color, reducedMotion = false } = {}) {
     this.canvas = canvas
     this.reducedMotion = reducedMotion
     this.isSmall = window.matchMedia('(max-width: 768px)').matches
@@ -66,7 +66,7 @@ export class PointCloud {
     this.mix = { color: 0, blue: 0 }
     this.settings = { ...DEFAULT_SETTINGS }
 
-    this.#build(color, light)
+    this.#build(color)
     for (const [k, v] of Object.entries(this.settings)) this.set(k, v, true) // réglages par défaut appliqués d'emblée
     this.resize()
 
@@ -75,9 +75,17 @@ export class PointCloud {
       this.mouse.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1)
       this.parallaxTarget.copy(this.mouse)
     }
-    this.onLeave = () => this.mouse.set(9999, 9999)
+    this.onLeave = () => {
+      this.mouse.set(9999, 9999)
+      this.parallaxTarget.set(0, 0)
+    }
+    // au doigt, l'effet ne dure que pendant le contact : on relâche la « souris » en levant le doigt
+    this.onPointerUp = (e) => e.pointerType !== 'mouse' && this.onLeave()
     window.addEventListener('resize', this.onResize)
     window.addEventListener('pointermove', this.onPointer, { passive: true })
+    window.addEventListener('pointerdown', this.onPointer, { passive: true })
+    window.addEventListener('pointerup', this.onPointerUp, { passive: true })
+    window.addEventListener('pointercancel', this.onPointerUp, { passive: true })
     document.addEventListener('pointerleave', this.onLeave)
     canvas.addEventListener('webglcontextlost', (e) => {
       e.preventDefault()
@@ -90,7 +98,7 @@ export class PointCloud {
     requestAnimationFrame(this.loop)
   }
 
-  #build(color, light) {
+  #build(color) {
     const n = this.count
     const geo = new BufferGeometry()
     this.buf = {
@@ -138,7 +146,7 @@ export class PointCloud {
       uMouse: { value: this.mouseWorld },
       uMouseRadius: { value: this.isSmall ? 2.2 : 3.2 },
       uColor: { value: new Color(color) },
-      uLight: { value: light ? 1 : 0 },
+      uLight: { value: 0 }, // thème clair retiré : toujours 0
       uColorMix: { value: 0 },
       uBlueMix: { value: 0 },
       uOpacity: { value: 1 },
@@ -328,11 +336,6 @@ export class PointCloud {
     this.dragging = false
   }
 
-  setColor(color, light) {
-    this.uniforms.uColor.value.set(color)
-    this.uniforms.uLight.value = light ? 1 : 0
-  }
-
   /** Mode de couleur : 0 monochrome, 1 couleurs de l'image, 2 monochrome bleu. */
   setColorMode(mode) {
     this.colorMode = ((mode % 3) + 3) % 3
@@ -352,8 +355,9 @@ export class PointCloud {
   }
 
   /** Décalage horizontal du nuage, en fraction de la largeur visible. */
-  setOffset(v) {
+  setOffset(v, y = 0) {
     this.offsetTarget = v
+    this.offsetYTarget = y
   }
 
   pause() {
@@ -387,9 +391,11 @@ export class PointCloud {
     u.uBlueMix.value += ((this.colorMode === 2 ? 1 : 0) - u.uBlueMix.value) * k
     const ox = this.offsetTarget * this.viewSize.w
     this.points.position.x += (ox - this.points.position.x) * (1 - Math.pow(0.02, dt))
+    const oy = (this.offsetYTarget || 0) * this.viewSize.h
+    this.points.position.y += (oy - this.points.position.y) * (1 - Math.pow(0.02, dt))
 
     const { w, h } = this.viewSize
-    this.mouseWorld.set((this.mouse.x * w) / 2 - this.points.position.x, (this.mouse.y * h) / 2, 0)
+    this.mouseWorld.set((this.mouse.x * w) / 2 - this.points.position.x, (this.mouse.y * h) / 2 - this.points.position.y, 0)
 
     if (!this.reducedMotion) {
       this.parallax.lerp(this.parallaxTarget, 1 - Math.pow(0.08, dt))

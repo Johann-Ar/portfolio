@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr" data-theme="dark">
+<html lang="fr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -10,13 +10,6 @@
     />
     <meta name="theme-color" content="#050407" />
 
-    <!-- thème appliqué avant le premier rendu (sombre par défaut) -->
-    <script>
-      try {
-        const t = localStorage.getItem('theme')
-        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
-      } catch {}
-    </script>
 
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="fr_FR" />
@@ -59,9 +52,6 @@
         <a href="#projets">Projets</a>
         <a href="#a-propos">À propos</a>
         <a href="#contact">Contact</a>
-        <button class="theme-toggle" type="button" id="theme-toggle" aria-label="Changer de thème">
-          <span class="theme-toggle__dot" aria-hidden="true"></span><span class="theme-toggle__label">Clair</span>
-        </button>
       </nav>
     </header>
 

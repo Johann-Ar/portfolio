@@ -23,34 +23,10 @@ const esc = (str = '') =>
   str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 const bold = (str) => esc(str).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
 
-/* ------------------------------------------------------------------
-   Thème (sombre par défaut)
-------------------------------------------------------------------- */
-
 const root = document.documentElement
-const themeToggle = document.getElementById('theme-toggle')
-const themeColors = { dark: { bg: '#050407', points: '#ffffff' }, light: { bg: '#ffffff', points: '#000000' } }
+const POINTS_COLOR = '#ffffff'
 let cloud = null
 let logo = null
-
-function applyTheme(theme, save = false) {
-  root.dataset.theme = theme
-  if (save) {
-    try {
-      localStorage.setItem('theme', theme)
-    } catch {}
-  }
-  document.querySelector('meta[name="theme-color"]').content = themeColors[theme].bg
-  themeToggle.querySelector('.theme-toggle__label').textContent = theme === 'dark' ? 'Clair' : 'Sombre'
-  themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Passer en thème clair' : 'Passer en thème sombre')
-  cloud?.setColor(themeColors[theme].points, theme === 'light')
-  if (cloud) updateCloud() // l'ancienne version du splat dépend du thème
-}
-applyTheme(root.dataset.theme === 'light' ? 'light' : 'dark')
-themeToggle.addEventListener('click', (e) => {
-  applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark', true)
-  if (e.detail) themeToggle.blur() // clic souris : pas de contour de focus persistant
-})
 
 /* ------------------------------------------------------------------
    Rendu
@@ -87,7 +63,7 @@ app.innerHTML = `
     </div>
   </section>
 
-  <section class="skills" aria-label="Compétences" data-cloud="terrain" data-cloud-opacity="0.45">
+  <section class="skills" aria-label="Compétences" data-cloud="none">
     ${rows
       .map(
         (row, i) =>
@@ -98,7 +74,7 @@ app.innerHTML = `
       .join('')}
   </section>
 
-  <section class="about" id="a-propos" data-cloud="terrain" data-cloud-opacity="0.18" aria-labelledby="about-title">
+  <section class="about" id="a-propos" data-cloud="none" aria-labelledby="about-title">
     <h2 class="section-title section-title--center reveal" id="about-title">À propos</h2>
     <div class="about__text">
       ${about.map((p) => `<p class="words" data-words>${bold(p)}</p>`).join('')}
@@ -227,8 +203,7 @@ async function initCloud() {
     import('./webgl/PointCloud.js'),
     import('./webgl/targets.js'),
   ])
-  const theme = root.dataset.theme
-  cloud = new PointCloud(canvas, { color: themeColors[theme].points, light: theme === 'light', reducedMotion })
+  cloud = new PointCloud(canvas, { color: POINTS_COLOR, reducedMotion })
   cloud.onContextLost = () => root.classList.add('no-webgl')
   // élément 3D en verre au centre de l'accueil (technique de la référence, forme de Johann)
   import('./webgl/GlassElement.js')
@@ -245,12 +220,10 @@ async function initCloud() {
   // logo en volume possible via l'option overlay d'imageTarget (voir scripts/logo-volume.py)
   cloud.register('hero', imageTarget(portrait, { ...far, focusX: 0.6 }))
   // touche B : ancienne version (points répartis selon la lumière), toujours plein écran
-  cloud.register('hero-old-dark', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6 }))
-  cloud.register('hero-old-light', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6, light: true }))
+  cloud.register('hero-old', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6 }))
   // contact : Thomas Gainsborough, « View near King's Bromley-on-Trent » (domaine public)
   cloud.register('contact', imageTarget(`${BASE}media/site/view-near.webp`, far))
   panel.attach()
-  cloud.register('terrain', imageTarget(`${BASE}media/site/terrain-cloud.webp`, { paper: true, size: 0.85, depth: 5 }))
   // projets : les couvertures du portfolio (imprimées sur fond blanc)
   for (const p of projects) cloud.register(p.slug, imageTarget(`${BASE}media/${p.cloud}`, { paper: true, size: 0.5, depth: 6 }))
   await cloud.preload('hero')
@@ -349,12 +322,18 @@ function updateCloud() {
   const profile = { top: 'hero', projets: 'project', contact: 'contact' }[section.id] || 'other'
   panel.setProfile(profile)
   let key = inWork ? selected : section.dataset.cloud
-  sharp?.show(key)
-  if (key === 'hero' && heroOld) key = `hero-old-${root.dataset.theme}`
-  cloud.show(key)
+  // sections sans image (compétences, à propos) : le nuage s'efface, la dernière image reste en mémoire
+  const empty = key === 'none'
+  if (!empty) {
+    sharp?.show(key)
+    if (key === 'hero' && heroOld) key = 'hero-old'
+    cloud.show(key)
+  }
   cloud.setScroll(section.id === 'top' ? heroProgress * 0.4 : 0)
-  cloud.setOpacity(Number(section.dataset.cloudOpacity ?? 1))
-  cloud.setOffset(inWork && !isSmall() ? 0.17 : 0)
+  // mobile : le nuage du projet passe au-dessus de la liste, plus discret pour garder le texte lisible
+  const smallWork = inWork && isSmall()
+  cloud.setOpacity(empty ? 0 : smallWork ? 0.55 : Number(section.dataset.cloudOpacity ?? 1))
+  cloud.setOffset(inWork && !isSmall() ? 0.17 : 0, smallWork ? 0.2 : 0)
 }
 
 /* Compétences : les lignes glissent en sens opposés */
