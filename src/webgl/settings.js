@@ -20,3 +20,52 @@ export const DEFAULT_SETTINGS = {
   glassSat: 1.17, // saturation des couleurs réfractées
   glassSpeed: 1, // vitesse de rotation
 }
+
+/**
+ * Réglages par type d'image (appliqués selon la section affichée).
+ * `mode` : 0 monochrome, 1 couleurs, 2 bleu. Les clés absentes reprennent DEFAULT_SETTINGS.
+ */
+export const PROFILES = {
+  hero: {
+    mode: 0,
+    size: 0.97,
+    relief: 0.67,
+    push: -9.5,
+    curve: 0.21,
+    opacity: 1.05,
+    contrast: 1.54,
+    veil: 0.38,
+    glass: 0,
+    reflect: 0,
+    breath: 0,
+  },
+  project: {
+    mode: 1,
+    size: 1.27,
+    relief: 0.66,
+    push: -0.5,
+    curve: 0.2,
+    opacity: 1.2,
+    contrast: 0.86,
+    veil: 0.31,
+    glass: 0,
+    reflect: 0,
+  },
+  contact: {
+    mode: 0,
+    size: 1.68,
+    relief: 1.25,
+    push: 30.5,
+    curve: 0.46,
+    opacity: 1.02,
+    contrast: 1.38,
+    veil: 0.4,
+    glass: 0,
+    reflect: 0,
+  },
+  other: {},
+}
+
+export const PROFILE_LABELS = { hero: 'Accueil', project: 'Projets', contact: 'Contact', other: 'Autres sections' }
+
+export const profileDefaults = (name) => ({ mode: 0, ...DEFAULT_SETTINGS, ...PROFILES[name] })

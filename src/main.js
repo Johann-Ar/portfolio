@@ -265,6 +265,7 @@ function setColorMode(mode) {
   if (!cloud) return
   const m = cloud.setColorMode(mode)
   root.dataset.cloudMode = ['mono', 'color', 'blue'][m]
+  panel.rememberMode(m)
   panel.sync()
 }
 /* Volumétrie : nuage de points (par défaut) ou vrais Gaussian splats SHARP (Spark + SPZ) */
@@ -331,6 +332,9 @@ function updateCloud() {
     list.classList.toggle('has-selection', inWork)
   }
   if (!cloud) return
+  // réglages selon le type d'image affichée
+  const profile = { top: 'hero', projets: 'project', contact: 'contact' }[section.id] || 'other'
+  panel.setProfile(profile)
   let key = inWork ? selected : section.dataset.cloud
   sharp?.show(key)
   if (key === 'hero' && heroOld) key = `hero-old-${root.dataset.theme}`

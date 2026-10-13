@@ -65,7 +65,7 @@ export class PointCloud {
     this.settings = { ...DEFAULT_SETTINGS }
 
     this.#build(color, light)
-    for (const [k, v] of Object.entries(this.settings)) this.set(k, v) // réglages par défaut appliqués d'emblée
+    for (const [k, v] of Object.entries(this.settings)) this.set(k, v, true) // réglages par défaut appliqués d'emblée
     this.resize()
 
     this.onResize = () => this.resize()
@@ -199,13 +199,16 @@ export class PointCloud {
     }
   }
 
-  /** Applique un réglage du panneau. */
-  set(name, value) {
+  /** Applique un réglage ; sauf `immediate`, la valeur est rejointe en douceur (changement de section). */
+  set(name, value, immediate = false) {
     this.settings[name] = value
-    const u = this.uniforms
-    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect', contrast: 'uContrast' }
-    if (map[name]) u[map[name]].value = value
-    if (name === 'mouseRadius') u.uMouseRadius.value = value * (this.isSmall ? 0.7 : 1)
+    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect', contrast: 'uContrast', mouseRadius: 'uMouseRadius' }
+    const uniform = map[name]
+    if (!uniform) return
+    const v = name === 'mouseRadius' ? value * (this.isSmall ? 0.7 : 1) : value
+    this.uniformTargets ??= {}
+    this.uniformTargets[uniform] = v
+    if (immediate) this.uniforms[uniform].value = v
   }
 
   /** Enregistre une cible : fonction asynchrone (count, view, isSmall) -> { pos, col, tone, off }. */
@@ -350,6 +353,7 @@ export class PointCloud {
     const k = 1 - Math.pow(0.001, dt)
     u.uScroll.value += (this.scrollTarget - u.uScroll.value) * k
     u.uOpacity.value += (this.opacityTarget - u.uOpacity.value) * k
+    for (const name in this.uniformTargets) u[name].value += (this.uniformTargets[name] - u[name].value) * k
     u.uColorMix.value += ((this.colorMode === 1 ? 1 : 0) - u.uColorMix.value) * k
     u.uBlueMix.value += ((this.colorMode === 2 ? 1 : 0) - u.uBlueMix.value) * k
     const ox = this.offsetTarget * this.viewSize.w

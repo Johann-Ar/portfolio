@@ -1,11 +1,12 @@
-import { DEFAULT_SETTINGS } from './webgl/settings.js'
+import { PROFILES, PROFILE_LABELS, profileDefaults } from './webgl/settings.js'
 
 /**
  * Panneau flottant de réglage des splats (touche P).
- * Agit en direct sur l'image affichée ; les réglages sont mémorisés dans ce navigateur.
+ * Un jeu de réglages par type d'image (accueil, projets, contact, autres) : le panneau édite
+ * celui de la section affichée. Modifications mémorisées dans ce navigateur.
  */
 
-const STORAGE_KEY = 'splat-settings'
+const STORAGE_KEY = 'splat-settings-v2'
 
 const SLIDERS = [
   { key: 'size', label: 'Taille des points', min: 0.2, max: 2.5, step: 0.01 },
@@ -31,16 +32,18 @@ const SLIDERS = [
 const MODES = ['Mono', 'Couleur', 'Bleu']
 
 function load() {
+  let saved = {}
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') }
-  } catch {
-    return { ...DEFAULT_SETTINGS }
-  }
+    saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+  } catch {}
+  const all = {}
+  for (const name of Object.keys(PROFILES)) all[name] = { ...profileDefaults(name), ...saved[name] }
+  return all
 }
 
-function save(settings) {
+function save(profiles) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles))
   } catch {}
 }
 
@@ -63,7 +66,9 @@ export class SplatPanel {
     this.onMode = onMode
     this.getHeroOld = getHeroOld
     this.setHeroOld = setHeroOld
-    this.settings = load()
+    this.profiles = load()
+    this.profile = 'hero'
+    this.settings = this.profiles[this.profile]
 
     const el = document.createElement('aside')
     el.className = 'splat-panel'
@@ -72,7 +77,7 @@ export class SplatPanel {
     el.setAttribute('aria-label', 'Réglages des splats')
     el.innerHTML = `
       <header class="splat-panel__head">
-        <span>Splat — réglages</span>
+        <span>Réglages — <b data-profile></b></span>
         <button type="button" data-close aria-label="Fermer le panneau">×</button>
       </header>
       <span class="splat-panel__label">Volumétrie</span>
@@ -108,8 +113,8 @@ export class SplatPanel {
       const key = e.target.dataset.key
       if (key) {
         this.settings[key] = Number(e.target.value)
-        this.#apply(key)
-        save(this.settings)
+        this.#apply(key, true)
+        save(this.profiles)
       }
       if (e.target.matches('[data-hero-old]')) this.setHeroOld(e.target.checked)
     })
@@ -121,8 +126,8 @@ export class SplatPanel {
       if (mode) this.onMode(Number(mode.dataset.mode))
       const shape = e.target.closest('[data-shape]')
       if (shape) {
-        this.settings.glassShape = shape.dataset.shape
-        save(this.settings)
+        for (const p of Object.values(this.profiles)) p.glassShape = shape.dataset.shape // forme commune
+        save(this.profiles)
         this.#apply('glassShape')
         this.sync()
       }
@@ -135,12 +140,13 @@ export class SplatPanel {
     })
   }
 
-  #apply(key) {
+  #apply(key, immediate = false) {
     const cloud = this.getCloud()
     const keys = key ? [key] : Object.keys(this.settings)
     for (const k of keys) {
+      if (k === 'mode') continue
       if (k === 'veil') document.documentElement.style.setProperty('--veil', this.settings[k])
-      else cloud?.set(k, this.settings[k])
+      else cloud?.set(k, this.settings[k], immediate)
       const input = this.el.querySelector(`[data-key="${k}"]`)
       const s = SLIDERS.find((x) => x.key === k)
       if (input) input.value = this.settings[k]
@@ -151,10 +157,28 @@ export class SplatPanel {
 
   /** À appeler quand le nuage est prêt : applique les réglages mémorisés. */
   attach() {
+    this.#apply(null, true)
+    this.onMode(this.settings.mode)
+  }
+
+  /** Change de profil (section affichée) : applique ses réglages et son mode de couleur. */
+  setProfile(name) {
+    if (!PROFILES[name] || name === this.profile) return
+    this.profile = name
+    this.settings = this.profiles[name]
     this.#apply()
+    this.onMode(this.settings.mode)
+    this.sync()
+  }
+
+  /** Mémorise le mode de couleur choisi (Espace ou boutons) dans le profil courant. */
+  rememberMode(mode) {
+    this.settings.mode = mode
+    save(this.profiles)
   }
 
   sync() {
+    this.el.querySelector('[data-profile]').textContent = PROFILE_LABELS[this.profile]
     const mode = this.getCloud()?.colorMode ?? 0
     this.el.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.mode) === mode)))
     this.el.querySelector('[data-hero-old]').checked = this.getHeroOld()
@@ -167,10 +191,13 @@ export class SplatPanel {
     this.el.querySelector('[data-status]').textContent = text
   }
 
+  /** Revient aux réglages par défaut du profil courant. */
   reset() {
-    this.settings = { ...DEFAULT_SETTINGS }
-    save(this.settings)
+    this.profiles[this.profile] = this.settings = profileDefaults(this.profile)
+    save(this.profiles)
     this.#apply()
+    this.onMode(this.settings.mode)
+    this.sync()
   }
 
   toggle(force) {
