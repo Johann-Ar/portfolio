@@ -66,7 +66,7 @@ export const PROFILES = {
     relief: 0.86,
     push: 44.5,
     curve: 0.61,
-    opacity: 1.67,
+    opacity: 0.82,
     contrast: 1.32,
     veil: 0.18,
     veilMode: 'points',
