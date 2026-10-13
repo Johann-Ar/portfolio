@@ -1177,6 +1177,17 @@ html.case-open {
   font-size: 1.4rem;
 }
 
+/* très fin décalage RVB sur la typo identitaire (rouge à gauche, bleu à droite) */
+.section-title,
+.skills__row,
+.case__title-wrapper h1,
+.case__next strong {
+  text-shadow:
+    -0.012em 0 rgb(255 0 60 / 0.55),
+    0.012em 0 rgb(0 150 255 / 0.55),
+    0 0 22px rgb(0 0 0 / 0.45); /* lisibilité sur les images */
+}
+
 /* ---------- Bascule de langue FR / EN ---------- */
 .lang-switch {
   display: inline-flex;

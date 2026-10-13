@@ -31,7 +31,6 @@ const MORPH_DURATION = 1.8
 const DELAY_SPREAD = 0.35
 const ROT_LIMIT = { x: 0.22, y: 0.4 } // rotation manuelle volontairement limitée
 
-const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
 
 export class PointCloud {
@@ -237,7 +236,8 @@ export class PointCloud {
     const v = name === 'mouseRadius' ? value * (this.isSmall ? 0.7 : 1) : value
     this.uniformTargets ??= {}
     this.uniformTargets[uniform] = v
-    if (immediate) this.uniforms[uniform].value = v
+    // nuage invisible (section sans image) : le réglage s'applique d'un coup, sans transition visible
+    if (immediate || this.uniforms.uOpacity.value < 0.03) this.uniforms[uniform].value = v
   }
 
   /** Enregistre une cible : fonction asynchrone (count, view, isSmall) -> { pos, col, tone, off }. */
@@ -264,15 +264,42 @@ export class PointCloud {
     if (!data || this.wanted !== key) return
     if (key === this.currentKey && !force) return
 
+    if (instant || this.reducedMotion) return this.#apply(key, data, true)
+    // chaque image a sa propre apparition : l'image affichée s'efface d'abord, sans morph qui les relie
+    if (this.currentKey && this.uniforms.uOpacity.value > 0.03) {
+      this.swap = { key, data }
+      return
+    }
+    this.swap = null
+    this.#apply(key, data, false)
+  }
+
+  /** Installe une cible : directement, ou en apparition (points dispersés qui se rassemblent). */
+  #apply(key, data, instant) {
     const b = this.buf
-    if (instant || this.reducedMotion) {
+    if (instant) {
       b.from.set(data.pos)
       b.colFrom.set(data.col)
       b.toneFrom.set(data.tone)
       b.offFrom.set(data.off)
       this.progress = 1
     } else {
-      this.#snapshot()
+      // départ : nuage dispersé et invisible, comme au chargement du site
+      const rand = this.rand
+      for (let i = 0; i < this.count; i++) {
+        const o = i * 4
+        b.from[o] = (rand[o + 1] - 0.5) * 60
+        b.from[o + 1] = (rand[o + 2] - 0.5) * 40
+        b.from[o + 2] = (rand[o + 3] - 0.5) * 40
+        b.from[o + 3] = data.pos[o + 3] * 0.3
+        b.colFrom[o] = data.col[o]
+        b.colFrom[o + 1] = data.col[o + 1]
+        b.colFrom[o + 2] = data.col[o + 2]
+        b.colFrom[o + 3] = 0
+        b.toneFrom[i * 2] = 0
+        b.toneFrom[i * 2 + 1] = 0
+      }
+      b.offFrom.set(data.off)
       this.progress = 0
     }
     b.to.set(data.pos)
@@ -294,34 +321,6 @@ export class PointCloud {
 
     const a = this.points.geometry.attributes
     for (const name of ['aFrom', 'aTo', 'aColFrom', 'aColTo', 'aToneFrom', 'aToneTo', 'aOffFrom', 'aOffTo', 'aUv']) a[name].needsUpdate = true
-  }
-
-  /** Fige l'état courant (même calcul que le shader) dans `from`, pour enchaîner sans saut. */
-  #snapshot() {
-    const { from, to, colFrom, colTo, toneFrom, toneTo, offFrom, offTo } = this.buf
-    const rand = this.rand
-    const p = this.progress
-    if (p >= 1) {
-      from.set(to)
-      colFrom.set(colTo)
-      toneFrom.set(toneTo)
-      offFrom.set(offTo)
-      return
-    }
-    for (let i = 0; i < this.count; i++) {
-      const o = i * 4
-      const local = clamp((p - rand[o] * DELAY_SPREAD) / (1 - DELAY_SPREAD), 0, 1)
-      const m = easeInOutCubic(local)
-      const burst = Math.sin(Math.PI * m)
-      from[o] += (to[o] - from[o]) * m + (rand[o + 1] - 0.5) * burst * 6
-      from[o + 1] += (to[o + 1] - from[o + 1]) * m + (rand[o + 2] - 0.5) * burst * 6
-      from[o + 2] += (to[o + 2] - from[o + 2]) * m + (rand[o + 3] - 0.5) * burst * 10
-      from[o + 3] += (to[o + 3] - from[o + 3]) * m
-      for (let c = 0; c < 4; c++) colFrom[o + c] += (colTo[o + c] - colFrom[o + c]) * m
-      toneFrom[i * 2] += (toneTo[i * 2] - toneFrom[i * 2]) * m
-      toneFrom[i * 2 + 1] += (toneTo[i * 2 + 1] - toneFrom[i * 2 + 1]) * m
-      offFrom[i] += (offTo[i] - offFrom[i]) * m
-    }
   }
 
   /** Rotation au glisser (dx, dy en pixels), limitée. */
@@ -389,7 +388,15 @@ export class PointCloud {
     u.uScroll.value += (this.scrollTarget - u.uScroll.value) * k
     // image demandée pas encore prête : on n'affiche pas l'ancienne en attendant (ex. accueil avant contact)
     const waiting = this.wanted && this.wanted !== this.currentKey
-    u.uOpacity.value += ((waiting ? 0 : this.opacityTarget) - u.uOpacity.value) * k
+    if (this.swap) {
+      // l'image précédente s'efface vite, puis la suivante apparaît
+      u.uOpacity.value *= Math.pow(0.0005, dt)
+      if (u.uOpacity.value < 0.03) {
+        const { key, data } = this.swap
+        this.swap = null
+        if (this.wanted === key) this.#apply(key, data, false)
+      }
+    } else u.uOpacity.value += ((waiting ? 0 : this.opacityTarget) - u.uOpacity.value) * k
     for (const name in this.uniformTargets) u[name].value += (this.uniformTargets[name] - u[name].value) * k
     u.uColorMix.value += ((this.colorMode === 1 ? 1 : 0) - u.uColorMix.value) * k
     u.uBlueMix.value += ((this.colorMode === 2 ? 1 : 0) - u.uBlueMix.value) * k
