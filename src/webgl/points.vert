@@ -7,6 +7,21 @@ attribute vec2 aToneTo;
 attribute float aOffFrom;  // recul de l'image
 attribute float aOffTo;
 attribute vec4 aRand;
+attribute vec3 aUv;        // position dans l'image + sens du ton (animation de l'image)
+
+uniform sampler2D uImage;  // image affichée par les points
+uniform float uAnim;       // animation de l'image (0 : figée)
+uniform float uAnimSpeed;
+uniform float uToneGain;
+
+// mouvement lent de l'image sous la grille : zoom qui respire, dérive, frémissement de lumière
+vec2 animUv(vec2 uv, float t) {
+  vec2 c = uv - 0.5;
+  c /= 1.0 + 0.035 * sin(t * 0.21);
+  c += 0.012 * vec2(sin(t * 0.13), cos(t * 0.17));
+  c += 0.0035 * vec2(sin(uv.y * 22.0 + t * 1.3), cos(uv.x * 18.0 + t * 1.1));
+  return c + 0.5;
+}
 
 uniform float uTime;
 uniform float uMix;
@@ -53,7 +68,18 @@ void main() {
   float cell = mix(aFrom.w, aTo.w, m);
   vec4 col = mix(aColFrom, aColTo, m);
   col.rgb = clamp((col.rgb - 0.5) * uContrast + 0.5, 0.0, 1.0);
-  vec2 tone = clamp((mix(aToneFrom, aToneTo, m) - 0.5) * uContrast + 0.5, 0.0, 1.0);
+  vec2 toneRaw = mix(aToneFrom, aToneTo, m);
+  // animation de l'image : les points restent fixes, c'est l'image qui bouge dessous
+  if (uAnim > 0.001 && aColTo.a > 0.0) {
+    float ta = uTime * uAnimSpeed;
+    vec3 c0 = texture2D(uImage, aUv.xy).rgb;
+    vec3 c1 = texture2D(uImage, clamp(animUv(aUv.xy, ta), 0.001, 0.999)).rgb;
+    vec3 dc = (c1 - c0) * uAnim * m;
+    col.rgb = clamp(col.rgb + dc, 0.0, 1.0);
+    float dl = dot(dc, vec3(0.2126, 0.7152, 0.0722)) * uToneGain;
+    toneRaw += vec2(aUv.z, aUv.z == 0.0 ? 0.0 : -1.0) * dl;
+  }
+  vec2 tone = clamp((toneRaw - 0.5) * uContrast + 0.5, 0.0, 1.0);
   float baseOff = mix(aOffFrom, aOffTo, m);
   float off = baseOff + uPush;
 

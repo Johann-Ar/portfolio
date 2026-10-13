@@ -1,4 +1,6 @@
 import {
+  LinearFilter,
+  Texture,
   BufferAttribute,
   BufferGeometry,
   Color,
@@ -100,6 +102,7 @@ export class PointCloud {
       toneTo: new Float32Array(n * 2),
       offFrom: new Float32Array(n),
       offTo: new Float32Array(n),
+      uv: new Float32Array(n * 3),
     }
     const rand = new Float32Array(n * 4)
     for (let i = 0; i < n * 4; i++) rand[i] = Math.random()
@@ -124,6 +127,7 @@ export class PointCloud {
     geo.setAttribute('aToneTo', new BufferAttribute(this.buf.toneTo, 2))
     geo.setAttribute('aOffFrom', new BufferAttribute(this.buf.offFrom, 1))
     geo.setAttribute('aOffTo', new BufferAttribute(this.buf.offTo, 1))
+    geo.setAttribute('aUv', new BufferAttribute(this.buf.uv, 3))
     geo.setAttribute('aRand', new BufferAttribute(rand, 4))
 
     this.uniforms = {
@@ -150,6 +154,10 @@ export class PointCloud {
       uGlass: { value: DEFAULT_SETTINGS.glass },
       uContrast: { value: 1 },
       uVeilTint: { value: 0 },
+      uImage: { value: null }, // image affichée, relue avec un mouvement lent (animation de l'image)
+      uAnim: { value: 0 },
+      uAnimSpeed: { value: 1 },
+      uToneGain: { value: 1 },
       uRgb: { value: 0 },
       uRgbGlow: { value: 0.5 },
       uReflect: { value: DEFAULT_SETTINGS.reflect },
@@ -205,7 +213,7 @@ export class PointCloud {
   /** Applique un réglage ; sauf `immediate`, la valeur est rejointe en douceur (changement de section). */
   set(name, value, immediate = false) {
     this.settings[name] = value
-    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect', contrast: 'uContrast', mouseRadius: 'uMouseRadius', veilTint: 'uVeilTint', rgb: 'uRgb', rgbGlow: 'uRgbGlow' }
+    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect', contrast: 'uContrast', mouseRadius: 'uMouseRadius', veilTint: 'uVeilTint', anim: 'uAnim', animSpeed: 'uAnimSpeed', rgb: 'uRgb', rgbGlow: 'uRgbGlow' }
     const uniform = map[name]
     if (!uniform) return
     const v = name === 'mouseRadius' ? value * (this.isSmall ? 0.7 : 1) : value
@@ -253,11 +261,18 @@ export class PointCloud {
     b.colTo.set(data.col)
     b.toneTo.set(data.tone)
     b.offTo.set(data.off)
+    if (data.uv) b.uv.set(data.uv)
+    // texture de l'image (une par cible), pour l'animer sous la grille de points
+    if (data.image) {
+      data.texture ??= Object.assign(new Texture(data.image), { minFilter: LinearFilter, generateMipmaps: false, needsUpdate: true })
+      this.uniforms.uImage.value = data.texture
+      this.uniforms.uToneGain.value = data.toneGain || 1
+    }
     this.currentKey = key
     this.userRot.vx = this.userRot.vy = 0
 
     const a = this.points.geometry.attributes
-    for (const name of ['aFrom', 'aTo', 'aColFrom', 'aColTo', 'aToneFrom', 'aToneTo', 'aOffFrom', 'aOffTo']) a[name].needsUpdate = true
+    for (const name of ['aFrom', 'aTo', 'aColFrom', 'aColTo', 'aToneFrom', 'aToneTo', 'aOffFrom', 'aOffTo', 'aUv']) a[name].needsUpdate = true
   }
 
   /** Fige l'état courant (même calcul que le shader) dans `from`, pour enchaîner sans saut. */

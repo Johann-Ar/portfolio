@@ -8,6 +8,8 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
 - « splat » : chaque image devient une grille de points (un par pixel échantillonné), avec sa couleur ;
   **la luminance détermine la profondeur**. Touche **Espace** : monochrome → couleurs → monochrome bleu ; **B** : ancien rendu de l'accueil ; **P** : panneau de réglages
   (taille des points, relief, distance, courbure, opacité, verre, reflets du fond, souris, respiration, parallaxe — mémorisés dans le navigateur) ;
+- animation de l'image (panneau P) : les points restent fixes, l'image affichée bouge doucement dessous
+  (zoom qui respire, dérive lente, frémissement de lumière) ; intensité et vitesse réglables ;
 - pixels RVB (panneau P) : chaque point devient un pixel d'écran OLED (PenTile, losanges) vu au microscope, halo réglable ;
 - effet verre : chaque point est une bille qui reflète les couleurs du fond situées derrière elle ;
 - accueil et contact : images reculées, bord à bord, profondeur inversée (clair = loin), courbure concave réglable ;

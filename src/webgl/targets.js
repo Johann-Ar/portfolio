@@ -110,6 +110,7 @@ export function imageTarget(src, { fit = 'contain', size = 0.5, mobileSize = 0.9
     const col = new Float32Array(count * 4)
     const tone = new Float32Array(count * 2)
     const off = new Float32Array(count).fill(distance)
+    const uv = new Float32Array(count * 3) // u, v dans l'image + sens du ton (animation de l'image)
 
     for (let j = 0; j < gh; j++) {
       for (let i = 0; i < gw; i++) {
@@ -120,6 +121,9 @@ export function imageTarget(src, { fit = 'contain', size = 0.5, mobileSize = 0.9
 
         pos[d] = x0 + (i + 0.5) * cell
         pos[d + 1] = y0 - (j + 0.5) * cell
+        uv[k * 3] = (i + 0.5) / gw
+        uv[k * 3 + 1] = 1 - (j + 0.5) / gh
+        uv[k * 3 + 2] = paper ? -1 : 1
         pos[d + 2] = (invertDepth ? 0.5 - z : z - 0.5) * depth
         pos[d + 3] = cell
 
@@ -146,7 +150,7 @@ export function imageTarget(src, { fit = 'contain', size = 0.5, mobileSize = 0.9
       pos.set(pos.subarray(from, from + 4), k * 4)
     }
 
-    return { pos, col, tone, off }
+    return { pos, col, tone, off, uv, image: img, toneGain: 1 / span }
   }
 }
 
@@ -204,6 +208,7 @@ export function sampledTarget(src, { overscan = 1.03, depth = 6, gamma = 1.4, li
     const col = new Float32Array(count * 4)
     const tone = new Float32Array(count * 2)
     const off = new Float32Array(count).fill(distance)
+    const uv = new Float32Array(count * 3)
     const step = total / count
     const offset = Math.random() * step
     for (let i = 0; i < count; i++) {
@@ -218,7 +223,11 @@ export function sampledTarget(src, { overscan = 1.03, depth = 6, gamma = 1.4, li
       const l = lum[a]
       const o = i * 4
       pos[o] = x0 + ((a % w) + Math.random()) * cell
-      pos[o + 1] = y0 - (Math.floor(a / w) + Math.random()) * cell
+      const py = Math.floor(a / w) + Math.random()
+      pos[o + 1] = y0 - py * cell
+      uv[i * 3] = (pos[o] - x0) / (w * cell)
+      uv[i * 3 + 1] = 1 - py / h
+      uv[i * 3 + 2] = 0 // l'ancien rendu garde ses tons (seule la couleur s'anime)
       pos[o + 2] = (invertDepth ? 0.5 - zmap[a] : zmap[a] - 0.5) * depth + (Math.random() - 0.5) * 0.12
       pos[o + 3] = pxWorld * 2.3 * (0.6 + l * 0.7)
       col[o] = data[a * 4] / 255
@@ -228,6 +237,6 @@ export function sampledTarget(src, { overscan = 1.03, depth = 6, gamma = 1.4, li
       tone[i * 2] = 0.3 + 0.7 * l
       tone[i * 2 + 1] = 0.3 + 0.7 * l
     }
-    return { pos, col, tone, off }
+    return { pos, col, tone, off, uv, image: img, toneGain: 1 / span }
   }
 }

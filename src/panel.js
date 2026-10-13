@@ -6,7 +6,7 @@ import { PROFILES, PROFILE_LABELS, profileDefaults } from './webgl/settings.js'
  * celui de la section affichée. Modifications mémorisées dans ce navigateur.
  */
 
-const STORAGE_KEY = 'splat-settings-v8'
+const STORAGE_KEY = 'splat-settings-v9'
 
 const SLIDERS = [
   { key: 'size', label: 'Taille des points', min: 0.2, max: 2.5, step: 0.01 },
@@ -17,6 +17,8 @@ const SLIDERS = [
   { key: 'contrast', label: 'Contraste', min: 0, max: 3, step: 0.01 },
   { key: 'veil', label: 'Calque couleurs (accueil, contact)', min: 0, max: 1, step: 0.01 },
   { key: 'vignette', label: 'Vignettage', min: 0, max: 1, step: 0.01 },
+  { key: 'anim', label: 'Animation de l’image', min: 0, max: 3, step: 0.01 },
+  { key: 'animSpeed', label: 'Animation : vitesse', min: 0, max: 5, step: 0.05 },
   { key: 'rgb', label: 'Pixels RVB (OLED)', min: 0, max: 1, step: 0.01 },
   { key: 'rgbGlow', label: 'Pixels RVB : halo', min: 0, max: 2, step: 0.01 },
   { key: 'glass', label: 'Verre', min: 0, max: 3, step: 0.01 },

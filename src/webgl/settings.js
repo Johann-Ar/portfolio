@@ -15,6 +15,8 @@ export const DEFAULT_SETTINGS = {
   veil: 0.4, // calque aux couleurs du fond par-dessus l'accueil et le contact
   veilMode: 'over', // placement du calque : 'front' devant tout, 'over' sur l'image, 'behind' derrière, 'points' seulement les points
   vignette: 0, // vignettage (bords assombris)
+  anim: 0.8, // animation de l'image affichée (les points restent fixes)
+  animSpeed: 1, // vitesse de l'animation
   rgb: 0, // effet « pixels RVB » (0 à 1)
   rgbGlow: 0.5, // halo des sous-pixels
   glassShape: 'logo', // élément 3D de l'accueil : 'logo' ou 'prisms' (comme la référence)
