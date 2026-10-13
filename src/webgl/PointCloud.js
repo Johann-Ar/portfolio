@@ -28,6 +28,7 @@ import { DEFAULT_SETTINGS } from './settings.js'
 
 
 const MORPH_DURATION = 1.8
+const DISPERSE_DURATION = 1.2 // disparition de l'accueil, un peu plus rapide que l'apparition
 const DELAY_SPREAD = 0.35
 const ROT_LIMIT = { x: 0.22, y: 0.4 } // rotation manuelle volontairement limitée
 
@@ -263,16 +264,50 @@ export class PointCloud {
     this.wanted = key
     const data = await this.#resolve(key)
     if (!data || this.wanted !== key) return
-    if (key === this.currentKey && !force) return
+    if (key === this.currentKey && !force) {
+      // retour sur l'image en cours de disparition : ses points se rassemblent à nouveau
+      if (this.swap?.disperse) {
+        this.swap = null
+        this.#apply(key, data, false)
+      } else this.swap = null
+      return
+    }
 
     if (instant || this.reducedMotion) return this.#apply(key, data, true)
     // chaque image a sa propre apparition : l'image affichée s'efface d'abord, sans morph qui les relie
     if (this.currentKey && this.uniforms.uOpacity.value > 0.03) {
-      this.swap = { key, data }
+      // accueil : disparition = apparition à l'envers (les points se dispersent et s'éteignent)
+      const disperse = this.currentKey.startsWith('hero')
+      if (disperse && !this.swap?.disperse) this.#disperse()
+      this.swap = { key, data, disperse: disperse || !!this.swap?.disperse }
       return
     }
     this.swap = null
     this.#apply(key, data, false)
+  }
+
+  /** Inverse de l'apparition : l'image affichée se défait en nuage dispersé et invisible. */
+  #disperse() {
+    const b = this.buf
+    const rand = this.rand
+    b.from.set(b.to)
+    b.colFrom.set(b.colTo)
+    b.toneFrom.set(b.toneTo)
+    b.offFrom.set(b.offTo)
+    for (let i = 0; i < this.count; i++) {
+      const o = i * 4
+      b.to[o] = (rand[o + 1] - 0.5) * 60
+      b.to[o + 1] = (rand[o + 2] - 0.5) * 40
+      b.to[o + 2] = (rand[o + 3] - 0.5) * 40
+      b.to[o + 3] = b.from[o + 3] * 0.3
+      b.colTo[o + 3] = 0
+      b.toneTo[i * 2] = 0
+      b.toneTo[i * 2 + 1] = 0
+    }
+    this.progress = 0
+    this.morphDuration = DISPERSE_DURATION
+    const a = this.points.geometry.attributes
+    for (const name of ['aFrom', 'aTo', 'aColFrom', 'aColTo', 'aToneFrom', 'aToneTo', 'aOffFrom', 'aOffTo']) a[name].needsUpdate = true
   }
 
   /** Installe une cible : directement, ou en apparition (points dispersés qui se rassemblent). */
@@ -303,6 +338,7 @@ export class PointCloud {
       b.offFrom.set(data.off)
       this.progress = 0
     }
+    this.morphDuration = MORPH_DURATION
     b.to.set(data.pos)
     b.colTo.set(data.col)
     b.toneTo.set(data.tone)
@@ -379,7 +415,7 @@ export class PointCloud {
     this.last = now
     this.time += dt
 
-    if (this.progress < 1) this.progress = Math.min(this.progress + dt / MORPH_DURATION, 1)
+    if (this.progress < 1) this.progress = Math.min(this.progress + dt / (this.morphDuration || MORPH_DURATION), 1)
     const u = this.uniforms
     u.uMix.value = this.progress
     u.uTime.value = this.time
@@ -389,7 +425,15 @@ export class PointCloud {
     u.uScroll.value += (this.scrollTarget - u.uScroll.value) * k
     // image demandée pas encore prête : on n'affiche pas l'ancienne en attendant (ex. accueil avant contact)
     const waiting = this.wanted && this.wanted !== this.currentKey
-    if (this.swap) {
+    if (this.swap?.disperse) {
+      // l'accueil se disperse (apparition à l'envers), puis l'image suivante se rassemble
+      if (this.progress >= 1) {
+        const { key, data } = this.swap
+        this.swap = null
+        if (this.wanted === key) this.#apply(key, data, false)
+      }
+      u.uOpacity.value += (this.opacityTarget - u.uOpacity.value) * k
+    } else if (this.swap) {
       // l'image précédente s'efface vite, puis la suivante apparaît
       u.uOpacity.value *= Math.pow(0.0005, dt)
       if (u.uOpacity.value < 0.03) {
