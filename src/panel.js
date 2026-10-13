@@ -17,6 +17,11 @@ const SLIDERS = [
   { key: 'veil', label: 'Calque couleurs (accueil, contact)', min: 0, max: 1, step: 0.01 },
   { key: 'glass', label: 'Verre', min: 0, max: 3, step: 0.01 },
   { key: 'reflect', label: 'Reflets du fond', min: 0, max: 4, step: 0.01 },
+  { key: 'glassIor', label: 'Verre 3D : réfraction', min: 0, max: 0.6, step: 0.005 },
+  { key: 'glassRough', label: 'Verre 3D : dispersion', min: 0, max: 1, step: 0.01 },
+  { key: 'glassBack', label: 'Verre 3D : faces arrière', min: 0, max: 1, step: 0.01 },
+  { key: 'glassSat', label: 'Verre 3D : saturation', min: 0, max: 2.5, step: 0.01 },
+  { key: 'glassSpeed', label: 'Verre 3D : rotation', min: 0, max: 5, step: 0.05 },
   { key: 'mouseRadius', label: 'Rayon souris', min: 0, max: 10, step: 0.1 },
   { key: 'mouseForce', label: 'Force souris', min: 0, max: 4, step: 0.05 },
   { key: 'breath', label: 'Respiration', min: 0, max: 6, step: 0.05 },
@@ -76,6 +81,11 @@ export class SplatPanel {
         <button type="button" data-volume="sharp" title="SHARP (Apple) · Spark · SPZ">SHARP</button>
       </div>
       <p class="splat-panel__status" data-status></p>
+      <span class="splat-panel__label">Élément 3D</span>
+      <div class="splat-panel__row splat-panel__modes splat-panel__modes--2" role="group" aria-label="Élément 3D">
+        <button type="button" data-shape="logo">Logo</button>
+        <button type="button" data-shape="prisms">Prismes (réf.)</button>
+      </div>
       <span class="splat-panel__label">Couleur</span>
       <div class="splat-panel__row splat-panel__modes" role="group" aria-label="Rendu">
         ${MODES.map((m, i) => `<button type="button" data-mode="${i}">${m}</button>`).join('')}
@@ -109,6 +119,13 @@ export class SplatPanel {
       if (e.detail) e.target.closest('button')?.blur() // clic souris : pas de contour persistant
       const mode = e.target.closest('[data-mode]')
       if (mode) this.onMode(Number(mode.dataset.mode))
+      const shape = e.target.closest('[data-shape]')
+      if (shape) {
+        this.settings.glassShape = shape.dataset.shape
+        save(this.settings)
+        this.#apply('glassShape')
+        this.sync()
+      }
       const volume = e.target.closest('[data-volume]')
       if (volume) this.setVolume(volume.dataset.volume)
     })
@@ -141,6 +158,7 @@ export class SplatPanel {
     const mode = this.getCloud()?.colorMode ?? 0
     this.el.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.mode) === mode)))
     this.el.querySelector('[data-hero-old]').checked = this.getHeroOld()
+    this.el.querySelectorAll('[data-shape]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.shape === this.settings.glassShape)))
     const vol = this.getVolume()
     this.el.querySelectorAll('[data-volume]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.volume === vol)))
   }

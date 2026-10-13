@@ -16,7 +16,11 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
 - thème sombre par défaut, thème clair noir et blanc ; fond en dégradé de la palette du site, derrière tout
   (rose bonbon `#FF98E5`, bleu lavande `#B2A3E9`, vert menthe `#98DDBE`, rose corail `#F799AB`) ;
 - contact : splat du tableau de Thomas Gainsborough, *View near King's Bromley-on-Trent* ;
-- accueil : logo 3D en verre (vague + anneau) au centre, irisé, qui suit la souris ;
+- accueil : élément 3D en verre au centre, même technique que celui de dorianlods.com, réécrite pour Three.js
+  (`src/webgl/GlassElement.js`) : la scène derrière le verre et les normales des faces arrière sont rendues
+  dans deux textures, puis le verre réfracte avec une dispersion sur 6 longueurs d'onde × 16 échantillons
+  (IOR 1.15 / 1.78 / 1.57 / 1.39 / 1.24 / 1.34), reflets de studio et Fresnel. Forme « Logo » (vague + anneau,
+  par défaut) ou « Prismes » (7 barres en étoile, comme la référence), au choix dans le panneau P ;
 - typos libres : Instrument Serif (titres), Figtree (texte), IBM Plex Mono (étiquettes).
 
 ## Lancer en local

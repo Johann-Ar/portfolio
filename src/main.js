@@ -226,13 +226,14 @@ async function initCloud() {
   const theme = root.dataset.theme
   cloud = new PointCloud(canvas, { color: themeColors[theme].points, light: theme === 'light', reducedMotion })
   cloud.onContextLost = () => root.classList.add('no-webgl')
-  // logo en verre au centre de l'accueil
-  import('./webgl/GlassLogo.js')
-    .then(({ GlassLogo }) => {
-      logo = new GlassLogo(cloud)
+  // élément 3D en verre au centre de l'accueil (technique de la référence, forme de Johann)
+  import('./webgl/GlassElement.js')
+    .then(({ GlassElement }) => {
+      logo = new GlassElement(cloud)
+      panel.attach()
       updateCloud()
     })
-    .catch((err) => console.warn('Logo 3D indisponible', err))
+    .catch((err) => console.warn('Élément 3D indisponible', err))
   // accueil : la photo remplit l'écran et déborde du cadre
   const portrait = `${BASE}media/site/portrait.webp`
   // accueil et contact : images reculées, bord à bord, profondeur inversée (clair = loin, foncé = proche)

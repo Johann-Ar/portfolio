@@ -13,4 +13,10 @@ export const DEFAULT_SETTINGS = {
   reflect: 0, // intensité des couleurs du fond reflétées
   contrast: 1, // contraste de l'image affichée
   veil: 0.4, // calque aux couleurs du fond par-dessus l'accueil et le contact
+  glassShape: 'logo', // élément 3D de l'accueil : 'logo' ou 'prisms' (comme la référence)
+  glassIor: 0.13, // intensité de la réfraction
+  glassRough: 0.2, // étalement de la dispersion
+  glassBack: 0.33, // influence des faces arrière
+  glassSat: 1.17, // saturation des couleurs réfractées
+  glassSpeed: 1, // vitesse de rotation
 }
