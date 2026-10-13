@@ -198,6 +198,26 @@ body {
   pointer-events: none;
   mix-blend-mode: var(--blend);
 }
+/* calque aux couleurs du fond, posé sur les splats de l'accueil et du contact */
+.veil {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 60% at 12% 18%, rgb(255 152 229 / 0.9), transparent 72%),
+    radial-gradient(ellipse 65% 60% at 88% 14%, rgb(178 163 233 / 0.9), transparent 72%),
+    radial-gradient(ellipse 70% 60% at 84% 86%, rgb(152 221 190 / 0.9), transparent 72%),
+    radial-gradient(ellipse 65% 60% at 14% 88%, rgb(247 153 171 / 0.9), transparent 72%),
+    radial-gradient(ellipse 55% 50% at 50% 50%, rgb(178 163 233 / 0.7), transparent 75%);
+  opacity: 0;
+  transition: opacity 0.8s var(--ease);
+}
+.show-veil .veil {
+  opacity: var(--veil, 0.4);
+}
+.case-open .veil {
+  opacity: 0;
+}
 .no-webgl .scene {
   display: none;
 }
@@ -995,6 +1015,10 @@ html.case-open {
   bottom: 20px;
   z-index: 250;
   width: 280px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
   padding: 14px 16px 12px;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -1035,6 +1059,25 @@ html.case-open {
   border-radius: 6px;
   font: inherit;
   text-transform: inherit;
+}
+.splat-panel__label {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+}
+.splat-panel__label + .splat-panel__modes {
+  margin-top: 4px;
+}
+.splat-panel__modes--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.splat-panel__status {
+  min-height: 0;
+  color: var(--muted);
+  text-transform: none;
+}
+.splat-panel__status:empty {
+  display: none;
 }
 .splat-panel__modes button[aria-pressed='true'] {
   background: var(--fg);

@@ -1,0 +1,62 @@
+{
+  "4derives": {
+    "file": "4derives.spz",
+    "count": 1178484,
+    "bytes": 16455850,
+    "size": [
+      177.1466,
+      103.914,
+      185.347
+    ]
+  },
+  "contact": {
+    "file": "contact.spz",
+    "count": 1169664,
+    "bytes": 16483674,
+    "size": [
+      3.5119,
+      2.2991,
+      6.8195
+    ]
+  },
+  "dumbo": {
+    "file": "dumbo.spz",
+    "count": 1161298,
+    "bytes": 12503703,
+    "size": [
+      1.0148,
+      0.797,
+      0.2392
+    ]
+  },
+  "hero": {
+    "file": "hero.spz",
+    "count": 1168386,
+    "bytes": 16755930,
+    "size": [
+      136.6612,
+      44.8286,
+      117.3839
+    ]
+  },
+  "mondes-immerges": {
+    "file": "mondes-immerges.spz",
+    "count": 1140921,
+    "bytes": 13471425,
+    "size": [
+      1.4191,
+      1.0369,
+      0.2304
+    ]
+  },
+  "photographique-volume": {
+    "file": "photographique-volume.spz",
+    "count": 1160284,
+    "bytes": 12517536,
+    "size": [
+      1.018,
+      0.7606,
+      0.1594
+    ]
+  }
+}

@@ -42,7 +42,7 @@ export const skills = [
 ]
 
 export const about = [
-  'Je suis **designer numérique**, formé en DNMADe Design numérique au lycée René Goscinny de Drap (2022 — 2025).',
+  'Je suis **designer numérique**, formé en DNMADe Design numérique et actuellement étudiant en **master Design numérique** à la Faculté des arts de l’Université de Strasbourg.',
   'Je travaille à partir de **captations réelles** : photographies sous-marines, vidéos de submersibles, une descente de rivière filmée en GoPro. Je les traduis en **volumes et en espaces navigables**, développés en **Three.js et WebGL**, avec des outils d’IA appliqués à l’image : segmentation (SAM2) et estimation de profondeur (Depth Anything V2).',
   'Je recherche un **stage en design numérique et 3D temps réel**.',
 ]
@@ -51,6 +51,7 @@ export const timeline = [
   {
     title: 'Formation',
     items: [
+      { year: '2026 —', name: 'Master Design numérique', detail: 'Faculté des arts, Université de Strasbourg' },
       { year: '2025 — 26', name: 'Année de césure', detail: 'Développement de projets de captation et de traduction spatiale des milieux naturels' },
       { year: '2022 — 25', name: 'DNMADe mention Design numérique', detail: 'Lycée René Goscinny, Drap (06), 180 ECTS' },
       { year: '2019 — 22', name: 'Baccalauréat général', detail: 'Lycée La Saulaie (38)' },

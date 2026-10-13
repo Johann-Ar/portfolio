@@ -25,6 +25,7 @@ uniform float uSizeFactor;
 uniform float uDepthScale;
 uniform float uPush;
 uniform float uBreath;
+uniform float uContrast; // contraste de l'image
 uniform float uCamZ;
 uniform float uCurve;     // courbure des images reculées : > 0 concave, < 0 sphérique
 uniform float uViewH;     // hauteur visible du plan z = 0
@@ -32,7 +33,8 @@ uniform float uScreenScale;
 uniform float uMotion;
 
 varying vec4 vColor;
-varying vec2 vScreen; // position à l'écran (0 à 1), pour lire les couleurs du fond
+varying vec2 vScreen;
+varying float vSize; // taille du point en pixels // position à l'écran (0 à 1), pour lire les couleurs du fond
 
 float easeInOutCubic(float t) {
   return t < 0.5 ? 4.0 * t * t * t : 1.0 - pow(-2.0 * t + 2.0, 3.0) / 2.0;
@@ -49,7 +51,8 @@ void main() {
   pos += (aRand.yzw - 0.5) * vec3(6.0, 6.0, 10.0) * burst;
   float cell = mix(aFrom.w, aTo.w, m);
   vec4 col = mix(aColFrom, aColTo, m);
-  vec2 tone = mix(aToneFrom, aToneTo, m);
+  col.rgb = clamp((col.rgb - 0.5) * uContrast + 0.5, 0.0, 1.0);
+  vec2 tone = clamp((mix(aToneFrom, aToneTo, m) - 0.5) * uContrast + 0.5, 0.0, 1.0);
   float baseOff = mix(aOffFrom, aOffTo, m);
   float off = baseOff + uPush;
 
@@ -78,7 +81,8 @@ void main() {
   gl_Position = projectionMatrix * mv;
   vScreen = gl_Position.xy / gl_Position.w * 0.5 + 0.5;
   // une cellule couvre sa place dans la grille : l'image reste continue
-  gl_PointSize = max(1.0, cell * uSizeFactor * uScreenScale / -mv.z);
+  gl_PointSize = max(1.5, cell * uSizeFactor * uScreenScale / -mv.z);
+  vSize = gl_PointSize;
 
   // monochrome / couleurs / monochrome bleu (comme les couvertures de projet)
   float mono = mix(tone.x, tone.y, uLight);

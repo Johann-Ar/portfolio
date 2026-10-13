@@ -1,5 +1,6 @@
 varying vec4 vColor;
 varying vec2 vScreen;
+varying float vSize;
 
 uniform float uGlass;    // effet verre : bille, reflet spéculaire, bord lumineux
 uniform float uReflect;  // intensité des couleurs du fond reflétées
@@ -52,7 +53,10 @@ void main() {
   rgb += spec * 0.55 * min(uGlass, 2.0) * mix(1.0, 0.6, uLight);
   rgb += fresnel * env * 0.25 * min(uGlass, 2.0);
 
-  float edge = smoothstep(1.0, 0.75, r2);
+  // bord lissé sur environ un pixel, quelle que soit la taille du point : disques nets
+  float r = sqrt(r2);
+  float aa = clamp(2.0 / vSize, 0.04, 0.6);
+  float edge = 1.0 - smoothstep(1.0 - aa, 1.0, r);
   float alpha = vColor.a * edge * mix(1.0, 0.65 + 0.35 * fresnel + spec, clamp(uGlass, 0.0, 1.0) * 0.5);
   gl_FragColor = vec4(clamp(rgb, 0.0, 1.0), alpha);
 }

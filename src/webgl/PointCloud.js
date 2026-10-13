@@ -13,6 +13,7 @@ import {
 import vertexShader from './points.vert?raw'
 import fragmentShader from './points.frag?raw'
 import { CAM_Z } from './targets.js'
+import { DEFAULT_SETTINGS } from './settings.js'
 
 /**
  * Nuage de points plein écran (« splat »).
@@ -23,20 +24,6 @@ import { CAM_Z } from './targets.js'
  * Les réglages fins (panneau, touche P) passent par `settings` / `set()`.
  */
 
-/** Réglages par défaut du panneau. */
-export const DEFAULT_SETTINGS = {
-  size: 0.56, // taille des points (1 = cellules jointives)
-  relief: 1.54, // amplitude de la profondeur
-  push: 1.5, // recul global
-  opacity: 1.28, // opacité globale
-  mouseRadius: 5.1, // rayon d'action de la souris
-  mouseForce: 1.05, // force de l'écartement
-  breath: 5.15, // respiration
-  parallax: 1.05, // parallaxe à la souris
-  curve: 0.45, // courbure des images plein écran : > 0 concave, < 0 sphérique
-  glass: 1, // effet verre (bille, reflet, bord lumineux)
-  reflect: 2.2, // intensité des couleurs du fond reflétées
-}
 
 const MORPH_DURATION = 1.8
 const DELAY_SPREAD = 0.35
@@ -58,6 +45,7 @@ export class PointCloud {
     this.camera = new PerspectiveCamera(35, 1, 0.1, 200)
     this.camera.position.set(0, 0, CAM_Z)
 
+    this.frameHooks = []
     this.targets = new Map()
     this.pending = new Map()
     this.mouse = new Vector2(9999, 9999)
@@ -160,6 +148,7 @@ export class PointCloud {
       uCurve: { value: DEFAULT_SETTINGS.curve },
       uViewH: { value: 1 },
       uGlass: { value: DEFAULT_SETTINGS.glass },
+      uContrast: { value: 1 },
       uReflect: { value: DEFAULT_SETTINGS.reflect },
       uAspect: { value: 1 },
       uScreenScale: { value: 1 },
@@ -172,7 +161,7 @@ export class PointCloud {
       uniforms: this.uniforms,
       transparent: true,
       depthWrite: false,
-      depthTest: false,
+      depthTest: true, // les points restent derrière le logo en verre
     })
     this.points = new Points(geo, this.material)
     this.points.frustumCulled = false
@@ -188,7 +177,8 @@ export class PointCloud {
   resize() {
     const w = window.innerWidth
     const h = window.innerHeight
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    // rendu au moins en double résolution (suréchantillonnage) : des points de 2 px restent des disques nets
+    const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 2), this.isSmall ? 2 : 2.5)
     this.renderer.setPixelRatio(dpr)
     this.renderer.setSize(w, h, false)
     this.camera.aspect = w / h
@@ -201,6 +191,7 @@ export class PointCloud {
     // les cibles dépendent du cadrage : on les recalcule (sauf si seule la hauteur change, ex. barre d'adresse mobile)
     const widthChanged = this.lastWidth !== undefined && this.lastWidth !== w
     this.lastWidth = w
+    this.onResized?.()
     if (widthChanged && this.targets.size) {
       this.targets.clear()
       clearTimeout(this.resizeTimer)
@@ -212,7 +203,7 @@ export class PointCloud {
   set(name, value) {
     this.settings[name] = value
     const u = this.uniforms
-    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect' }
+    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect', contrast: 'uContrast' }
     if (map[name]) u[map[name]].value = value
     if (name === 'mouseRadius') u.uMouseRadius.value = value * (this.isSmall ? 0.7 : 1)
   }
@@ -383,6 +374,7 @@ export class PointCloud {
       this.points.rotation.x = -this.parallax.y * 0.05 * px + r.x
     }
 
+    for (const hook of this.frameHooks) hook(dt) // calques additionnels (logo, volumétrie SHARP)
     this.renderer.render(this.scene, this.camera)
     requestAnimationFrame(this.loop)
   }

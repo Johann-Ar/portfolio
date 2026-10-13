@@ -26,6 +26,7 @@ const root = document.documentElement
 const themeToggle = document.getElementById('theme-toggle')
 const themeColors = { dark: { bg: '#050407', points: '#ffffff' }, light: { bg: '#ffffff', points: '#000000' } }
 let cloud = null
+let logo = null
 
 function applyTheme(theme, save = false) {
   root.dataset.theme = theme
@@ -136,7 +137,7 @@ app.innerHTML = `
 
   <footer class="footer">
     <span>© ${new Date().getFullYear()} ${esc(site.name)}</span>
-    <span class="footer__key"><kbd>Espace</kbd> mono / couleur / bleu <kbd>B</kbd> autre rendu <kbd>P</kbd> réglages</span>
+    <span class="footer__key"><kbd>Espace</kbd> mono / couleur / bleu <kbd>B</kbd> autre rendu <kbd>V</kbd> volumétrie SHARP <kbd>P</kbd> réglages</span>
     <span>${esc(site.role)} — ${esc(site.location)}</span>
   </footer>
 `
@@ -225,6 +226,13 @@ async function initCloud() {
   const theme = root.dataset.theme
   cloud = new PointCloud(canvas, { color: themeColors[theme].points, light: theme === 'light', reducedMotion })
   cloud.onContextLost = () => root.classList.add('no-webgl')
+  // logo en verre au centre de l'accueil
+  import('./webgl/GlassLogo.js')
+    .then(({ GlassLogo }) => {
+      logo = new GlassLogo(cloud)
+      updateCloud()
+    })
+    .catch((err) => console.warn('Logo 3D indisponible', err))
   // accueil : la photo remplit l'écran et déborde du cadre
   const portrait = `${BASE}media/site/portrait.webp`
   // accueil et contact : images reculées, bord à bord, profondeur inversée (clair = loin, foncé = proche)
@@ -258,6 +266,38 @@ function setColorMode(mode) {
   root.dataset.cloudMode = ['mono', 'color', 'blue'][m]
   panel.sync()
 }
+/* Volumétrie : nuage de points (par défaut) ou vrais Gaussian splats SHARP (Spark + SPZ) */
+let volume = 'points'
+let sharp = null
+let sharpLoading = null
+async function setVolume(v) {
+  volume = v
+  panel.sync()
+  if (v === 'sharp' && !sharp && cloud) {
+    sharpLoading ??= (async () => {
+      panel.status('Chargement de Spark…')
+      const [{ SharpLayer }, index] = await Promise.all([
+        import('./webgl/SharpLayer.js'),
+        fetch(`${BASE}splats/index.json`).then((r) => r.json()),
+      ])
+      const layout = { hero: { fit: 'cover', distance: 34 }, contact: { fit: 'cover', distance: 34 } }
+      for (const p of projects) layout[p.slug] = { fit: 'contain', distance: 0, size: 0.5 }
+      sharp = new SharpLayer(cloud, index, `${BASE}splats/`, layout)
+      sharp.onStatus = (t) => panel.status(t)
+      cloud.onResized = () => sharp.relayout()
+      panel.status('')
+    })().catch((err) => {
+      console.warn('Volumétrie SHARP indisponible', err)
+      panel.status('Volumétrie SHARP indisponible sur cet appareil.')
+      volume = 'points'
+      panel.sync()
+    })
+    await sharpLoading
+  }
+  sharp?.setEnabled(volume === 'sharp')
+  updateCloud()
+}
+
 function setHeroOld(v) {
   heroOld = v
   updateCloud()
@@ -268,6 +308,8 @@ const panel = new SplatPanel({
   onMode: setColorMode,
   getHeroOld: () => heroOld,
   setHeroOld,
+  getVolume: () => volume,
+  setVolume,
 })
 
 function updateCloud() {
@@ -278,6 +320,9 @@ function updateCloud() {
   for (const s of sections) {
     if (s.getBoundingClientRect().top <= mid) section = s
   }
+  // calque aux couleurs du fond, par-dessus les splats de l'accueil et du contact
+  root.classList.toggle('show-veil', section.id === 'top' || section.id === 'contact')
+  logo?.setProgress(Math.min(heroProgress * 1.8, 1)) // le logo sort avant que le texte ne le croise
   const nowInWork = section === workSection
   if (nowInWork !== inWork) {
     inWork = nowInWork
@@ -286,6 +331,7 @@ function updateCloud() {
   }
   if (!cloud) return
   let key = inWork ? selected : section.dataset.cloud
+  sharp?.show(key)
   if (key === 'hero' && heroOld) key = `hero-old-${root.dataset.theme}`
   cloud.show(key)
   cloud.setScroll(section.id === 'top' ? heroProgress * 0.4 : 0)
@@ -363,6 +409,8 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') {
     e.preventDefault()
     setColorMode(cloud.colorMode + 1) // monochrome -> couleurs -> bleu
+  } else if (e.key === 'v' || e.key === 'V') {
+    setVolume(volume === 'sharp' ? 'points' : 'sharp')
   } else if (e.key === 'b' || e.key === 'B') {
     setHeroOld(!heroOld)
   }

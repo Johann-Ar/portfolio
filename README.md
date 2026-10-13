@@ -16,6 +16,7 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
 - thème sombre par défaut, thème clair noir et blanc ; fond en dégradé de la palette du site, derrière tout
   (rose bonbon `#FF98E5`, bleu lavande `#B2A3E9`, vert menthe `#98DDBE`, rose corail `#F799AB`) ;
 - contact : splat du tableau de Thomas Gainsborough, *View near King's Bromley-on-Trent* ;
+- accueil : logo 3D en verre (vague + anneau) au centre, irisé, qui suit la souris ;
 - typos libres : Instrument Serif (titres), Figtree (texte), IBM Plex Mono (étiquettes).
 
 ## Lancer en local
@@ -53,7 +54,30 @@ Le workflow `.github/workflows/deploy.yml` construit et publie le site à chaque
 À activer une fois : *Settings → Pages → Source : GitHub Actions*.
 Le site est servi en chemins relatifs : il fonctionne aussi sur un domaine perso.
 
+## Volumétrie SHARP (touche V)
+
+Mode alternatif : vrais Gaussian splats 3D au lieu du nuage de points.
+
+1. **SHARP** (Apple, [github.com/apple/ml-sharp](https://github.com/apple/ml-sharp)) : une image → un `.ply` de gaussiennes 3D.
+   Fonctionne sur CPU (~90 s par image) :
+   ```bash
+   sharp predict -i images/ -o ply/ --device cpu --no-render
+   ```
+2. **SPZ** (Niantic, [github.com/nianticlabs/spz](https://github.com/nianticlabs/spz)) : compression (~4–5× plus léger) :
+   ```bash
+   python3 scripts/ply-to-spz.py ply/ public/splats/            # pleine qualité
+   python3 scripts/ply-to-spz.py ply/ public/splats/ --max 600000  # allégé pour le web
+   ```
+   Le script écrit des SPZ v3 (gzip), la v4 (zstd) n'étant pas encore lue par Spark.
+3. **Spark** (World Labs, [sparkjs.dev](https://sparkjs.dev)) : rendu dans la scène Three.js, chargé à la demande.
+
+Les noms des fichiers (`hero`, `contact`, slug du projet) relient chaque scène à sa section.
+
 ## Crédits
 
 Photographies de la série « Invisible » et « La couleur de l'eau » : © Nicolas Floc'h.
 Captations ROV : Schmidt Ocean Institute.
+Contact : Thomas Gainsborough, *View near King's Bromley-on-Trent* (domaine public).
+Volumétrie : Apple Machine Learning Research Model is licensed under the Apple Machine Learning Research Model License
+Agreement (`public/splats/LICENSE_MODEL.txt`). Les fichiers `public/splats/*.spz` sont des dérivés du modèle SHARP
+(gaussiennes prédites puis compressées en SPZ), réservés à un usage non commercial de recherche.

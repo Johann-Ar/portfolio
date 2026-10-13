@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS } from './webgl/PointCloud.js'
+import { DEFAULT_SETTINGS } from './webgl/settings.js'
 
 /**
  * Panneau flottant de réglage des splats (touche P).
@@ -13,6 +13,8 @@ const SLIDERS = [
   { key: 'push', label: 'Distance', min: -15, max: 60, step: 0.5 },
   { key: 'curve', label: 'Courbure (− sphère / + concave)', min: -1.5, max: 1.5, step: 0.01 },
   { key: 'opacity', label: 'Opacité', min: 0.1, max: 2, step: 0.01 },
+  { key: 'contrast', label: 'Contraste', min: 0, max: 3, step: 0.01 },
+  { key: 'veil', label: 'Calque couleurs (accueil, contact)', min: 0, max: 1, step: 0.01 },
   { key: 'glass', label: 'Verre', min: 0, max: 3, step: 0.01 },
   { key: 'reflect', label: 'Reflets du fond', min: 0, max: 4, step: 0.01 },
   { key: 'mouseRadius', label: 'Rayon souris', min: 0, max: 10, step: 0.1 },
@@ -46,8 +48,12 @@ export class SplatPanel {
    * @param {(mode:number) => void} o.onMode      changement de mode couleur
    * @param {() => boolean} o.getHeroOld          rendu « ancien » de l'accueil (touche B)
    * @param {(v:boolean) => void} o.setHeroOld
+   * @param {() => string} o.getVolume            'points' ou 'sharp'
+   * @param {(v:string) => void} o.setVolume
    */
-  constructor({ getCloud, onMode, getHeroOld, setHeroOld }) {
+  constructor({ getCloud, onMode, getHeroOld, setHeroOld, getVolume, setVolume }) {
+    this.getVolume = getVolume
+    this.setVolume = setVolume
     this.getCloud = getCloud
     this.onMode = onMode
     this.getHeroOld = getHeroOld
@@ -56,6 +62,7 @@ export class SplatPanel {
 
     const el = document.createElement('aside')
     el.className = 'splat-panel'
+    el.setAttribute('data-lenis-prevent', '') // la molette fait défiler le panneau, pas la page
     el.hidden = true
     el.setAttribute('aria-label', 'Réglages des splats')
     el.innerHTML = `
@@ -63,6 +70,13 @@ export class SplatPanel {
         <span>Splat — réglages</span>
         <button type="button" data-close aria-label="Fermer le panneau">×</button>
       </header>
+      <span class="splat-panel__label">Volumétrie</span>
+      <div class="splat-panel__row splat-panel__modes splat-panel__modes--2" role="group" aria-label="Volumétrie">
+        <button type="button" data-volume="points">Points</button>
+        <button type="button" data-volume="sharp" title="SHARP (Apple) · Spark · SPZ">SHARP</button>
+      </div>
+      <p class="splat-panel__status" data-status></p>
+      <span class="splat-panel__label">Couleur</span>
       <div class="splat-panel__row splat-panel__modes" role="group" aria-label="Rendu">
         ${MODES.map((m, i) => `<button type="button" data-mode="${i}">${m}</button>`).join('')}
       </div>
@@ -95,6 +109,8 @@ export class SplatPanel {
       if (e.detail) e.target.closest('button')?.blur() // clic souris : pas de contour persistant
       const mode = e.target.closest('[data-mode]')
       if (mode) this.onMode(Number(mode.dataset.mode))
+      const volume = e.target.closest('[data-volume]')
+      if (volume) this.setVolume(volume.dataset.volume)
     })
     // les touches du site ne doivent pas agir quand on manipule un curseur
     el.addEventListener('keydown', (e) => {
@@ -106,7 +122,8 @@ export class SplatPanel {
     const cloud = this.getCloud()
     const keys = key ? [key] : Object.keys(this.settings)
     for (const k of keys) {
-      cloud?.set(k, this.settings[k])
+      if (k === 'veil') document.documentElement.style.setProperty('--veil', this.settings[k])
+      else cloud?.set(k, this.settings[k])
       const input = this.el.querySelector(`[data-key="${k}"]`)
       const s = SLIDERS.find((x) => x.key === k)
       if (input) input.value = this.settings[k]
@@ -124,6 +141,12 @@ export class SplatPanel {
     const mode = this.getCloud()?.colorMode ?? 0
     this.el.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.mode) === mode)))
     this.el.querySelector('[data-hero-old]').checked = this.getHeroOld()
+    const vol = this.getVolume()
+    this.el.querySelectorAll('[data-volume]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.volume === vol)))
+  }
+
+  status(text) {
+    this.el.querySelector('[data-status]').textContent = text
   }
 
   reset() {
