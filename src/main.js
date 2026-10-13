@@ -11,6 +11,11 @@ import { CaseView } from './case.js'
 import { SplatPanel } from './panel.js'
 
 const BASE = import.meta.env.BASE_URL
+
+// au lancement, on arrive toujours sur l'accueil (pas de reprise de scroll ni d'ancre de section)
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+if (location.hash && !location.hash.startsWith('#/')) history.replaceState(null, '', location.pathname + location.search)
+window.scrollTo(0, 0)
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const isTouch = !window.matchMedia('(hover: hover)').matches
 const isSmall = () => window.matchMedia('(max-width: 768px)').matches
@@ -122,7 +127,6 @@ app.innerHTML = `
 
   <section class="contact" id="contact" data-cloud="contact" data-cloud-opacity="0.6" aria-labelledby="contact-title">
     <h2 class="section-title section-title--center reveal" id="contact-title">Contact</h2>
-    <p class="contact__text reveal">Écrivez-moi.</p>
     <a class="contact__mail reveal" href="mailto:${esc(site.email)}"><span>${esc(site.email)}</span></a>
     <a class="contact__phone reveal" href="tel:${esc(site.phone.replace(/\s/g, ''))}"><span>${esc(site.phone)}</span></a>
     <ul class="socials reveal">
