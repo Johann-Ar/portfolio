@@ -108,7 +108,7 @@ function loadImage(src) {
 }
 
 /** Une image : densité et profondeur suivent la luminance des pixels. */
-export function imageTarget(src, { invert = false, gamma = 1.5, depth = 7 } = {}) {
+export function imageTarget(src, { invert = false, gamma = 1.5, depth = 7, size = 0.62, mobileSize = 0.92 } = {}) {
   return async (count, view, isSmall) => {
     const img = await loadImage(src)
     const ratio = img.naturalWidth / img.naturalHeight
@@ -129,8 +129,8 @@ export function imageTarget(src, { invert = false, gamma = 1.5, depth = 7 } = {}
       weights[i] = Math.pow(l, gamma)
     }
 
-    const maxW = view.w * (isSmall ? 0.92 : 0.62)
-    const maxH = view.h * (isSmall ? 0.5 : 0.7)
+    const maxW = view.w * (isSmall ? mobileSize : size)
+    const maxH = view.h * (isSmall ? 0.5 : 0.7) * Math.min(1, size / 0.62)
     const scale = Math.min(maxW / w, maxH / h)
     const rect = { w: w * scale, h: h * scale }
     rect.x = -rect.w / 2

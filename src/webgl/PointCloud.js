@@ -59,6 +59,11 @@ export class PointCloud {
     this.onPointer = (e) => this.#pointer(e)
     this.onLeave = () => this.mouse.set(9999, 9999)
     window.addEventListener('resize', this.onResize)
+    canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault()
+      this.pause()
+      this.onContextLost?.()
+    })
     window.addEventListener('pointermove', this.onPointer, { passive: true })
     document.addEventListener('pointerleave', this.onLeave)
 
@@ -210,6 +215,10 @@ export class PointCloud {
     this.opacityTarget = v
   }
 
+  setColor(color) {
+    this.uniforms.uColor.value.set(color)
+  }
+
   /** Décalage horizontal du nuage, en fraction de la largeur visible. */
   setOffset(v) {
     this.offsetTarget = v
@@ -245,7 +254,7 @@ export class PointCloud {
 
     // souris -> plan z = 0
     const { w, h } = this.viewSize
-    this.mouseWorld.set((this.mouse.x * w) / 2, (this.mouse.y * h) / 2, 0)
+    this.mouseWorld.set((this.mouse.x * w) / 2 - this.points.position.x, (this.mouse.y * h) / 2, 0)
 
     // légère parallaxe de caméra
     if (!this.reducedMotion) {

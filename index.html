@@ -1,20 +1,27 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Johann Arata — Artiste visuel</title>
+    <title>Johann Arata — Designer numérique</title>
     <meta
       name="description"
-      content="Johann Arata, artiste visuel. Image, espace et captation : des captations environnementales réelles traduites en volumes et espaces traversables."
+      content="Johann Arata, designer numérique. Expériences web immersives et temps réel : WebGL, Three.js, nuages de points, images captées."
     />
-    <meta name="theme-color" content="#ffffff" />
-    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#050407" />
+
+    <!-- thème appliqué avant le premier rendu (sombre par défaut) -->
+    <script>
+      try {
+        const t = localStorage.getItem('theme')
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+      } catch {}
+    </script>
 
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="fr_FR" />
-    <meta property="og:title" content="Johann Arata — Artiste visuel" />
-    <meta property="og:description" content="Image, espace et captation. Des captations réelles traduites en volumes traversables." />
+    <meta property="og:title" content="Johann Arata — Designer numérique" />
+    <meta property="og:description" content="Expériences web immersives et temps réel : WebGL, Three.js, nuages de points." />
     <meta property="og:image" content="share.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
 
@@ -26,8 +33,9 @@
         "@context": "https://schema.org",
         "@type": "Person",
         "name": "Johann Arata",
-        "jobTitle": "Artiste visuel",
+        "jobTitle": "Designer numérique",
         "email": "mailto:arata.johann@gmail.com",
+        "knowsAbout": ["WebGL", "Three.js", "Design numérique", "Expériences interactives"],
         "address": { "@type": "PostalAddress", "addressRegion": "Auvergne-Rhône-Alpes", "addressCountry": "FR" },
         "sameAs": ["https://github.com/holosene"]
       }
@@ -35,13 +43,12 @@
   </head>
   <body>
     <div class="loader" id="loader" aria-hidden="true">
-      <div class="loader__inner">
-        <span class="loader__name">Johann Arata</span>
-        <span class="loader__count" id="loader-count">000</span>
-      </div>
+      <span class="loader__count" id="loader-count">000</span>
       <div class="loader__bar"><span id="loader-bar"></span></div>
     </div>
 
+    <div class="backdrop" aria-hidden="true"></div>
+    <div class="title-layer" id="title-layer"></div>
     <canvas class="scene" id="scene" aria-hidden="true"></canvas>
 
     <header class="topbar">
@@ -50,6 +57,9 @@
         <a href="#projets">Projets</a>
         <a href="#a-propos">À propos</a>
         <a href="#contact">Contact</a>
+        <button class="theme-toggle" type="button" id="theme-toggle" aria-label="Changer de thème">
+          <span class="theme-toggle__dot" aria-hidden="true"></span><span class="theme-toggle__label">Clair</span>
+        </button>
       </nav>
     </header>
 
@@ -58,7 +68,7 @@
     <section class="case" id="case" role="dialog" aria-modal="true" aria-labelledby="case-title" hidden data-lenis-prevent></section>
 
     <noscript>
-      <p style="padding: 2rem; font-family: sans-serif">Ce site utilise JavaScript pour afficher les projets de Johann Arata. Contact : arata.johann@gmail.com</p>
+      <p style="padding: 2rem; font-family: sans-serif; color: #fff">Ce site utilise JavaScript pour afficher les projets de Johann Arata, designer numérique. Contact : arata.johann@gmail.com</p>
     </noscript>
     <script type="module" src="/src/main.js"></script>
   </body>

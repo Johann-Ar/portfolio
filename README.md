@@ -1,12 +1,13 @@
 # Johann Arata — portfolio
 
-Site portfolio d'artiste visuel : image, espace et captation.
+Portfolio de designer numérique : expériences web immersives et temps réel.
 Vite + Three.js (nuage de points WebGL) + Lenis (smooth scroll), sans framework.
 
-Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) (titre WebGL plein écran,
-liste de projets, pages projet en galerie horizontale), entièrement réécrite avec la DA de Johann :
-fond blanc, bleu `#3B21FF`, IBM Plex Mono / Plex Sans, et le principe de ses projets —
-**la luminance de chaque pixel détermine sa profondeur**.
+Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) (nom en tuiles fixe, liste de projets,
+grands mots en tuiles, fiches projet en galerie horizontale), entièrement réécrite :
+- nuage de points où **la luminance de chaque pixel détermine sa profondeur** ; il prend la forme du projet survolé ;
+- thème sombre par défaut, thème clair (bleu `#3B21FF`) via le bouton en haut à droite ;
+- typos libres : Manufacturing Consent (titres), Figtree (texte), IBM Plex Mono (étiquettes).
 
 ## Lancer en local
 
@@ -26,7 +27,8 @@ Tout est dans **`src/content.js`** : textes, ordre des projets, galeries, liens,
 | changer un texte                 | `src/content.js`                                |
 | ajouter / réordonner un projet   | tableau `projects` dans `src/content.js`        |
 | changer l'image du nuage d'un projet | champ `cloud` du projet                     |
-| changer les couleurs, typos      | variables en haut de `src/styles/main.css`      |
+| changer les couleurs, typos      | variables en haut de `src/styles/main.css` (`--font-display` pour la typo des titres) |
+| régler les tuiles et le glitch   | `src/tiles.js`                                  |
 | régler le nuage de points        | `src/webgl/PointCloud.js`, `points.vert`        |
 
 ## Ajouter des images
