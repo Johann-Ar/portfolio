@@ -1,25 +1,52 @@
 import manifest from './media-manifest.json'
 import { projects } from './content.js'
 
+/**
+ * Fiche projet : même mécanique que la référence.
+ * La section défile verticalement (un espaceur donne la hauteur), et ce défilement
+ * fait glisser horizontalement le bloc fixe : titre + texte + infos, puis les images.
+ * Les petites images sont regroupées par deux, empilées dans une colonne (bento).
+ * Au bout, continuer à défiler remplit une jauge puis ouvre le projet suivant.
+ */
+
 const BASE = import.meta.env.BASE_URL
 const mediaUrl = (src) => `${BASE}media/${src}`
-// distance à « tirer » au bout de la galerie pour passer au projet suivant
-const PULL_THRESHOLD = 650
 const esc = (str = '') =>
   str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 
-function renderMedia(item, i) {
+const PULL_THRESHOLD = 650 // distance à « tirer » au bout pour passer au projet suivant
+const SMALL_WIDTH = 700 // en dessous (largeur d'origine), une image est regroupée avec sa voisine
+
+const sizeOf = (item) => (item.youtube ? [1600, 900] : manifest[item.src] || [1200, 900])
+const isSmall = (item) => !item.youtube && sizeOf(item)[0] < SMALL_WIDTH
+
+function img(item, eager) {
   const src = item.youtube ? item.poster : item.src
-  const [w, h] = item.youtube ? [1600, 900] : manifest[src] || [1200, 900]
-  const img = `<img src="${mediaUrl(src)}" alt="${esc(item.alt)}" width="${w}" height="${h}" ${
-    i < 2 ? 'fetchpriority="high"' : 'loading="lazy"'
+  const [w, h] = sizeOf(item)
+  return `<img class="media__img" src="${mediaUrl(src)}" alt="${esc(item.alt)}" width="${w}" height="${h}" ${
+    eager ? 'fetchpriority="high"' : 'loading="lazy"'
   } decoding="async" />`
+}
+
+function single(item, i) {
   const play = item.youtube
     ? `<button class="media__play" type="button" data-youtube="${esc(item.youtube)}" aria-label="Lire la vidéo : ${esc(item.alt)}"><span>Lire le film</span></button>`
     : ''
-  return `<figure class="media" style="--ar:${(w / h).toFixed(4)}">
-    ${img}${play}
-  </figure>`
+  return `<div class="media">${img(item, i < 2)}${play}</div>`
+}
+
+/** Regroupe les petites images consécutives par deux. */
+function layout(media) {
+  const out = []
+  for (let i = 0; i < media.length; i++) {
+    const a = media[i]
+    const b = media[i + 1]
+    if (isSmall(a) && b && isSmall(b)) {
+      out.push(`<div class="media-double">${single(a, i)}${single(b, i + 1)}</div>`)
+      i++
+    } else out.push(single(a, i))
+  }
+  return out.join('')
 }
 
 export class CaseView {
@@ -38,6 +65,23 @@ export class CaseView {
       if (e.target.closest('[data-close]')) this.onClose()
     })
     el.addEventListener('load', (e) => e.target.tagName === 'IMG' && e.target.classList.add('is-loaded'), true)
+    el.addEventListener('scroll', () => this.#onScroll(), { passive: true })
+    el.addEventListener('wheel', (e) => this.#onWheel(e), { passive: false })
+
+    let touchY = null
+    el.addEventListener('touchstart', (e) => (touchY = e.touches[0].clientY), { passive: true })
+    el.addEventListener(
+      'touchmove',
+      (e) => {
+        if (touchY === null) return
+        const y = e.touches[0].clientY
+        if (this.#atEnd() && y < touchY) this.#pullBy((touchY - y) * 1.2)
+        touchY = y
+      },
+      { passive: true },
+    )
+    el.addEventListener('touchend', () => (touchY = null), { passive: true })
+    window.addEventListener('resize', () => this.isOpen && this.#measure())
   }
 
   #playVideo(btn) {
@@ -53,96 +97,88 @@ export class CaseView {
   render(project) {
     const index = projects.indexOf(project)
     const next = projects[(index + 1) % projects.length]
+    this.nextSlug = next.slug
 
     this.el.innerHTML = `
-      <button class="case__close" type="button" data-close>Fermer</button>
-      <div class="case__track" tabindex="-1">
-        <div class="case__intro">
-          <h1 class="case__title" id="case-title">${esc(project.title)}</h1>
-          <p class="case__text">${esc(project.text)}</p>
-          <dl class="case__infos">
-            ${project.infos.map(([k, v]) => `<div><dt>${esc(k)} :</dt><dd><i>//</i> ${esc(v)}</dd></div>`).join('')}
-          </dl>
-          ${
-            project.link
-              ? `<a class="case__link" href="${esc(project.link.href)}" target="_blank" rel="noopener"><span>${esc(project.link.label)}</span></a>`
-              : ''
-          }
+      <div class="case__spacer"></div>
+      <div class="case__wrapper">
+        <div class="case__title-wrapper">
+          <h1 id="case-title">${esc(project.title)}</h1>
+          <p>${esc(project.text)}</p>
+          <div class="case__infos">
+            ${project.infos
+              .map(
+                ([k, v]) =>
+                  `<p class="info-item"><span class="info-category">${esc(k)} :</span><b>//</b><span class="info-value">${esc(v)}</span></p>`,
+              )
+              .join('')}
+            ${
+              project.link
+                ? `<a class="case__link" href="${esc(project.link.href)}" target="_blank" rel="noopener"><span>${esc(project.link.label)}</span></a>`
+                : ''
+            }
+          </div>
         </div>
-        <div class="case__media">
-          ${project.media.map(renderMedia).join('')}
-          <a class="case__next" href="#/${next.slug}">
-            <small>Projet suivant</small>
-            <strong>${esc(next.title)}</strong>
-            <span class="case__pull" aria-hidden="true"><span></span></span>
-            <em>Continuez à défiler</em>
-          </a>
+        <div class="case__images">
+          ${layout(project.media)}
         </div>
+        <a class="case__next" href="#/${next.slug}">
+          <small>Projet suivant</small>
+          <strong>${esc(next.title)}</strong>
+          <span class="case__pull" aria-hidden="true"><span></span></span>
+          <em>Continuez à défiler</em>
+        </a>
       </div>
-      <div class="case__progress" aria-hidden="true"><span></span></div>`
+      <div class="case__close"><button type="button" data-close>Fermer</button></div>`
 
-    this.track = this.el.querySelector('.case__track')
-    this.bar = this.el.querySelector('.case__progress span')
-    this.nextSlug = next.slug
+    this.wrapper = this.el.querySelector('.case__wrapper')
+    this.spacer = this.el.querySelector('.case__spacer')
+    this.current = 0
     this.#setPull(0)
-    this.#bindScroll()
   }
 
-  /** Défilement horizontal : la molette verticale fait avancer la galerie, avec inertie. */
-  #bindScroll() {
-    const track = this.track
-    this.target = this.current = 0
-    this.animating = false
-    track.addEventListener(
-      'wheel',
-      (e) => {
-        if (this.mobile.matches || e.ctrlKey) return
-        const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX
-        e.preventDefault()
-        const max = track.scrollWidth - track.clientWidth
-        const d = delta * (e.deltaMode === 1 ? 32 : 1)
-        // au bout : on « tire » contre une résistance avant de passer au projet suivant
-        if (d > 0 && this.target >= max - 1) this.#pullBy(d * 0.55)
-        else if (d < 0 && this.pull > 0) this.#pullBy(d)
-        else this.target = Math.min(Math.max(this.target + d, 0), max)
-        this.#tick()
-      },
-      { passive: false },
-    )
-    // mobile : même principe en bas de page
-    let touchY = null
-    this.el.addEventListener('touchstart', (e) => (touchY = e.touches[0].clientY), { passive: true })
-    this.el.addEventListener(
-      'touchmove',
-      (e) => {
-        if (!this.mobile.matches || touchY === null) return
-        const y = e.touches[0].clientY
-        const atEnd = this.el.scrollTop + this.el.clientHeight >= this.el.scrollHeight - 2
-        if (atEnd && y < touchY) this.#pullBy((touchY - y) * 1.2)
-        touchY = y
-      },
-      { passive: true },
-    )
-    this.el.addEventListener('touchend', () => (touchY = null), { passive: true })
-    // clavier, doigt, barre : on resynchronise la cible
-    track.addEventListener('scroll', () => {
-      if (!this.animating) this.target = this.current = track.scrollLeft
-      this.#progress()
-    })
+  /** Hauteur de l'espaceur = largeur du contenu à faire défiler + hauteur d'écran (comme la référence). */
+  #measure() {
+    if (this.mobile.matches) {
+      this.spacer.style.height = '0px'
+      this.wrapper.style.transform = ''
+      return
+    }
+    const travel = Math.max(0, this.wrapper.scrollWidth - window.innerWidth)
+    this.travel = travel
+    this.spacer.style.height = `${travel + window.innerHeight}px`
   }
 
-  #tick() {
-    if (this.animating) return
+  #onScroll() {
+    if (this.mobile.matches || this.animating) return
     this.animating = true
     const step = () => {
-      if (!this.isOpen) return (this.animating = false)
-      this.current += (this.target - this.current) * 0.1
-      if (Math.abs(this.target - this.current) < 0.5) this.current = this.target
-      this.track.scrollLeft = this.current
-      if (this.current !== this.target) requestAnimationFrame(step)
+      const target = Math.min(this.el.scrollTop, this.travel || 0)
+      this.current += (target - this.current) * 0.12
+      if (Math.abs(target - this.current) < 0.3) this.current = target
+      this.wrapper.style.transform = `translate3d(${-this.current.toFixed(1)}px,0,0)`
+      if (this.current !== target && this.isOpen) requestAnimationFrame(step)
       else this.animating = false
     }
     requestAnimationFrame(step)
+  }
+
+  #atEnd() {
+    return this.el.scrollTop + this.el.clientHeight >= this.el.scrollHeight - 2
+  }
+
+  #onWheel(e) {
+    if (!this.isOpen || e.ctrlKey) return
+    const raw = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX
+    const d = raw * (e.deltaMode === 1 ? 32 : 1)
+    // le bloc est en position fixe : la molette ne remonte pas jusqu'à la section, on la pilote ici
+    if (!this.mobile.matches) {
+      e.preventDefault()
+      this.el.scrollTop += d
+    }
+    // au bout : on « tire » contre une résistance avant de passer au projet suivant
+    if (d > 0 && this.#atEnd()) this.#pullBy(d * 0.55)
+    else if (d < 0 && this.pull > 0) this.#pullBy(d)
   }
 
   #setPull(v) {
@@ -171,40 +207,46 @@ export class CaseView {
     }
   }
 
-  #progress() {
-    const t = this.track
-    const max = t.scrollWidth - t.clientWidth
-    if (this.bar && max > 0) this.bar.style.transform = `scaleX(${t.scrollLeft / max})`
+  #enter(project) {
+    this.render(project)
+    this.el.scrollTop = 0
+    this.#measure()
+    requestAnimationFrame(() => {
+      this.el.classList.remove('is-leaving')
+      this.el.classList.add('is-open')
+      this.el.focus({ preventScroll: true })
+    })
   }
 
   open(project) {
     const reopen = this.isOpen
+    this.isOpen = true
     this.leaving = false
     clearTimeout(this.hideTimer)
-    this.render(project)
-    this.el.hidden = false
-    this.el.scrollTop = 0
+    clearTimeout(this.swapTimer)
     document.addEventListener('keydown', this.onKey)
+    this.el.hidden = false
     if (reopen) {
+      // projet suivant : le contenu sort vers la gauche, puis le nouveau entre
+      this.el.classList.add('is-leaving')
       this.el.classList.remove('is-open')
+      this.swapTimer = setTimeout(() => this.#enter(project), 550)
+    } else {
       void this.el.offsetWidth
+      this.#enter(project)
     }
-    requestAnimationFrame(() => {
-      this.el.classList.add('is-open')
-      this.track.focus({ preventScroll: true })
-    })
-    this.isOpen = true
   }
 
   close() {
     if (!this.isOpen) return
     this.isOpen = false
     document.removeEventListener('keydown', this.onKey)
-    this.el.classList.remove('is-open')
+    clearTimeout(this.swapTimer)
+    this.el.classList.remove('is-open', 'is-leaving')
     clearTimeout(this.hideTimer)
     this.hideTimer = setTimeout(() => {
       this.el.hidden = true
       this.el.innerHTML = ''
-    }, 650)
+    }, 900)
   }
 }

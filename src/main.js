@@ -8,7 +8,6 @@ import './styles/main.css'
 import Lenis from 'lenis'
 import { site, skills, about, timeline, projects } from './content.js'
 import { CaseView } from './case.js'
-import { tiles } from './tiles.js'
 
 const BASE = import.meta.env.BASE_URL
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -37,7 +36,7 @@ function applyTheme(theme, save = false) {
   document.querySelector('meta[name="theme-color"]').content = themeColors[theme].bg
   themeToggle.querySelector('.theme-toggle__label').textContent = theme === 'dark' ? 'Clair' : 'Sombre'
   themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Passer en thème clair' : 'Passer en thème sombre')
-  cloud?.setColor(themeColors[theme].points)
+  cloud?.setColor(themeColors[theme].points, theme === 'light')
 }
 applyTheme(root.dataset.theme === 'light' ? 'light' : 'dark')
 themeToggle.addEventListener('click', (e) => {
@@ -55,16 +54,16 @@ skills.forEach((s, i) => rows[i % rows.length].push(s))
 
 const app = document.getElementById('app')
 app.innerHTML = `
-  <section class="hero" id="top" data-cloud="cover">
+  <section class="hero" id="top" data-cloud="hero">
     <h1 class="u-visually-hidden">${esc(site.name)}, ${esc(site.role.toLowerCase())}</h1>
     <p class="hero__intro words" data-words>${esc(site.intro)}</p>
     <span class="hero__scroll" aria-hidden="true">Défiler</span>
   </section>
 
   <section class="work" id="projets" data-cloud="project" aria-labelledby="work-title">
-    <div class="work__stage" aria-hidden="true"><span class="work__hint">Glisser pour faire tourner</span></div>
+    <div class="work__stage" aria-hidden="true"></div>
     <div class="work__inner">
-      <h2 id="work-title">${tiles(['Projets', 'choisis'], { className: 'section-tiles reveal' })}</h2>
+      <h2 class="section-title reveal" id="work-title">Projets choisis</h2>
       <ul class="work__list">
         ${projects
           .map(
@@ -80,20 +79,19 @@ app.innerHTML = `
     </div>
   </section>
 
-  <section class="skills" aria-label="Compétences" data-cloud="terrain" data-cloud-opacity="0.75">
+  <section class="skills" aria-label="Compétences" data-cloud="terrain" data-cloud-opacity="0.45">
     ${rows
       .map(
         (row, i) =>
-          `<div class="skills__row" data-dir="${i % 2 ? -1 : 1}">${tiles(
-            row.map((w, j) => (j < row.length - 1 || i < rows.length - 1 ? `${w},` : w)),
-            { className: 'skills__tiles' },
-          )}</div>`,
+          `<p class="skills__row" data-dir="${i % 2 ? -1 : 1}">${row
+            .map((w, j) => esc(j < row.length - 1 || i < rows.length - 1 ? `${w},` : w))
+            .join(' ')}</p>`,
       )
       .join('')}
   </section>
 
-  <section class="about" id="a-propos" data-cloud="terrain" data-cloud-opacity="0.25" aria-labelledby="about-title">
-    <h2 id="about-title">${tiles('À propos', { className: 'section-tiles section-tiles--center reveal' })}</h2>
+  <section class="about" id="a-propos" data-cloud="terrain" data-cloud-opacity="0.18" aria-labelledby="about-title">
+    <h2 class="section-title section-title--center reveal" id="about-title">À propos</h2>
     <div class="about__text">
       ${about.map((p) => `<p class="words" data-words>${bold(p)}</p>`).join('')}
     </div>
@@ -119,8 +117,8 @@ app.innerHTML = `
     </div>
   </section>
 
-  <section class="contact" id="contact" data-cloud="cover" data-cloud-opacity="0.8" aria-labelledby="contact-title">
-    <h2 id="contact-title">${tiles('Contact', { className: 'section-tiles section-tiles--center reveal' })}</h2>
+  <section class="contact" id="contact" data-cloud="hero" data-cloud-opacity="0.3" aria-labelledby="contact-title">
+    <h2 class="section-title section-title--center reveal" id="contact-title">Contact</h2>
     <p class="contact__text reveal">Un stage, un projet, une question : écrivez-moi.</p>
     <a class="contact__mail reveal" href="mailto:${esc(site.email)}"><span>${esc(site.email)}</span></a>
     <ul class="socials reveal">
@@ -135,6 +133,7 @@ app.innerHTML = `
 
   <footer class="footer">
     <span>© ${new Date().getFullYear()} ${esc(site.name)}</span>
+    <span class="footer__key"><kbd>Espace</kbd> couleurs du nuage</span>
     <span>${esc(site.role)} — ${esc(site.location)}</span>
   </footer>
 `
@@ -196,7 +195,6 @@ document.querySelectorAll('a[href^="#"]:not([href^="#/"])').forEach((a) => {
   })
 })
 
-
 /* ------------------------------------------------------------------
    Nuage de points WebGL
 ------------------------------------------------------------------- */
@@ -221,13 +219,15 @@ async function initCloud() {
     import('./webgl/PointCloud.js'),
     import('./webgl/targets.js'),
   ])
-  cloud = new PointCloud(canvas, { color: themeColors[root.dataset.theme].points, reducedMotion })
+  const theme = root.dataset.theme
+  cloud = new PointCloud(canvas, { color: themeColors[theme].points, light: theme === 'light', reducedMotion })
   cloud.onContextLost = () => root.classList.add('no-webgl')
-  const cover = { invert: true, gamma: 1.2, depth: 5 }
-  cloud.register('cover', imageTarget(`${BASE}media/site/squid-cloud.webp`, { ...cover, size: 0.6, mobileSize: 0.95 }))
-  cloud.register('terrain', imageTarget(`${BASE}media/site/terrain-cloud.webp`, { ...cover, size: 0.8 }))
-  for (const p of projects) cloud.register(p.slug, imageTarget(`${BASE}media/${p.cloud}`, { invert: true, gamma: 1.1, depth: 6, size: 0.5, mobileSize: 0.92 }))
-  await cloud.show('cover', { instant: true })
+  // accueil : la photo remplit l'écran et déborde du cadre
+  cloud.register('hero', imageTarget(`${BASE}media/site/portrait.webp`, { fit: 'cover', overscan: 1.18, depth: 6, focusX: 0.64 }))
+  cloud.register('terrain', imageTarget(`${BASE}media/site/terrain-cloud.webp`, { paper: true, size: 0.85, depth: 5 }))
+  // projets : les couvertures du portfolio (imprimées sur fond blanc)
+  for (const p of projects) cloud.register(p.slug, imageTarget(`${BASE}media/${p.cloud}`, { paper: true, size: 0.5, depth: 6 }))
+  await cloud.preload('hero')
 }
 
 const sections = [...document.querySelectorAll('[data-cloud]')]
@@ -241,12 +241,10 @@ let inWork = false
 function updateCloud() {
   const vh = window.innerHeight
   const heroProgress = Math.min(window.scrollY / vh, 1)
-  root.style.setProperty('--hp', heroProgress.toFixed(3))
   const mid = vh * 0.5
   let section = sections[0]
   for (const s of sections) {
-    const r = s.getBoundingClientRect()
-    if (r.top <= mid) section = s
+    if (s.getBoundingClientRect().top <= mid) section = s
   }
   const nowInWork = section === workSection
   if (nowInWork !== inWork) {
@@ -255,10 +253,8 @@ function updateCloud() {
     list.classList.toggle('has-selection', inWork)
   }
   if (!cloud) return
-  const key = inWork ? selected : section.dataset.cloud
-  cloud.show(key)
-
-  cloud.setScroll(section.id === 'top' ? heroProgress * 0.5 : 0)
+  cloud.show(inWork ? selected : section.dataset.cloud)
+  cloud.setScroll(section.id === 'top' ? heroProgress * 0.4 : 0)
   cloud.setOpacity(Number(section.dataset.cloudOpacity ?? 1))
   cloud.setOffset(inWork && !isSmall() ? 0.17 : 0)
 }
@@ -300,7 +296,7 @@ if (!isTouch) {
   links.forEach((l) => io.observe(l))
 }
 
-/* Le nuage du projet se manipule : glisser pour le faire tourner (sans changer de projet) */
+/* Le nuage du projet se manipule : glisser pour le faire tourner (rotation limitée, sans changer de projet) */
 const stage = document.querySelector('.work__stage')
 let dragFrom = null
 stage.addEventListener('pointerdown', (e) => {
@@ -320,6 +316,14 @@ const endDrag = () => {
 }
 stage.addEventListener('pointerup', endDrag)
 stage.addEventListener('pointercancel', endDrag)
+
+/* Espace : bascule le nuage entre monochrome et couleurs de l'image */
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' || e.repeat || !cloud || caseView.isOpen) return
+  if (e.target.closest?.('input, textarea, select, button, a, [contenteditable]')) return
+  e.preventDefault()
+  root.classList.toggle('cloud-color', cloud.toggleColorMode())
+})
 
 let ticking = false
 window.addEventListener(
@@ -357,8 +361,10 @@ function openProject(project) {
   background.forEach((el) => (el.inert = true))
   root.classList.add('case-open')
   lenis?.stop()
-  setTimeout(() => caseView.isOpen && cloud?.pause(), 700)
+  clearTimeout(pauseTimer)
+  pauseTimer = setTimeout(() => caseView.isOpen && cloud?.pause(), 1000)
 }
+let pauseTimer
 
 function closeProject() {
   if (!caseView.isOpen) return
@@ -414,10 +420,10 @@ Promise.all([
       loader.classList.add('is-hidden')
       root.classList.add('is-ready')
       document.querySelectorAll('.words, .reveal').forEach((el) => revealObserver.observe(el))
+      // les points dispersés se rassemblent pour former l'image d'accueil
       updateCloud()
       updateSkills()
       route()
-      // préchargement discret des nuages de projets
       const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1200))
       idle(() => projects.forEach((p) => cloud?.preload(p.slug)))
     },

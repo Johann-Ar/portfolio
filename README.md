@@ -3,12 +3,14 @@
 Portfolio de designer numérique : expériences web immersives et temps réel.
 Vite + Three.js (nuage de points WebGL) + Lenis (smooth scroll), sans framework.
 
-Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) (liste de projets, grands mots en tuiles,
-fiches projet en galerie horizontale), entièrement réécrite :
-- nuage de points où **la luminance de chaque pixel détermine sa profondeur** ; dans la section Projets,
-  il montre l'image de couverture du projet survolé et se fait tourner au glisser ;
-- au bout d'une fiche projet, continuer à défiler remplit une jauge puis ouvre le projet suivant ;
-- thème sombre par défaut, thème clair noir et blanc ; fond aux couleurs du logo Apple TV ;
+Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiches projet reprennent sa composition
+(défilement vertical qui fait glisser un bloc horizontal : texte + infos, puis images de 100 % de hauteur).
+- « splat » : chaque image devient une grille de points (un par pixel échantillonné), avec sa couleur ;
+  **la luminance détermine la profondeur**. Touche **Espace** : monochrome / couleurs de l'image ;
+- accueil : photo plein écran qui déborde du cadre ; section Projets : couverture du projet survolé,
+  rotation limitée au glisser ;
+- fiches projet : petites images regroupées par deux (bento) ; au bout, continuer à défiler ouvre le projet suivant ;
+- thème sombre par défaut, thème clair noir et blanc ; halos aux couleurs du logo Apple TV sur tout le pourtour ;
 - typos libres : Instrument Serif (titres), Figtree (texte), IBM Plex Mono (étiquettes).
 
 ## Lancer en local
@@ -30,8 +32,7 @@ Tout est dans **`src/content.js`** : textes, ordre des projets, galeries, liens,
 | ajouter / réordonner un projet   | tableau `projects` dans `src/content.js`        |
 | changer l'image du nuage d'un projet | champ `cloud` du projet (couverture du portfolio) |
 | changer les couleurs, typos      | variables en haut de `src/styles/main.css` (`--font-display` pour la typo des titres) |
-| régler les tuiles                | `src/tiles.js`                                  |
-| régler le nuage de points        | `src/webgl/PointCloud.js`, `points.vert`        |
+| régler le splat (points, profondeur) | `src/webgl/targets.js`, `src/webgl/PointCloud.js` |
 
 ## Ajouter des images
 

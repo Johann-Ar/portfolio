@@ -14,23 +14,25 @@ import vertexShader from './points.vert?raw'
 import fragmentShader from './points.frag?raw'
 
 /**
- * Nuage de points plein écran.
- * Chaque « cible » (texte ou image) est échantillonnée en N points :
- * la densité suit la luminance, et la luminance pilote la profondeur (z).
+ * Nuage de points plein écran (« splat »).
+ * Chaque cible (image) est une grille de points colorés dont la profondeur suit la luminance.
  * On passe d'une cible à l'autre par un morph avec dispersion.
+ * Deux rendus : monochrome (blanc / noir selon le thème) ou couleurs de l'image.
  */
 
 const MORPH_DURATION = 1.8
 const DELAY_SPREAD = 0.35
+const ROT_LIMIT = { x: 0.22, y: 0.4 } // rotation manuelle volontairement limitée
 
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
 
 export class PointCloud {
-  constructor(canvas, { color, reducedMotion = false } = {}) {
+  constructor(canvas, { color, light = false, reducedMotion = false } = {}) {
     this.canvas = canvas
     this.reducedMotion = reducedMotion
     this.isSmall = window.matchMedia('(max-width: 768px)').matches
-    this.count = this.isSmall ? 40000 : 110000
+    this.count = this.isSmall ? 50000 : 120000
 
     this.renderer = new WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: 'high-performance' })
     this.renderer.setClearColor(0x000000, 0)
@@ -44,6 +46,7 @@ export class PointCloud {
     this.mouseWorld = new Vector3(9999, 9999, 0)
     this.parallax = new Vector2()
     this.parallaxTarget = new Vector2()
+    this.userRot = { x: 0, y: 0, vx: 0, vy: 0 }
     this.progress = 1
     this.currentKey = null
     this.running = true
@@ -51,41 +54,63 @@ export class PointCloud {
     this.scrollTarget = 0
     this.opacityTarget = 1
     this.offsetTarget = 0
-    // rotation manuelle (glisser), avec inertie
-    this.userRot = { x: 0, y: 0, vx: 0, vy: 0 }
+    this.colorTarget = 0
 
-    this.#buildPoints(color)
+    this.#build(color, light)
     this.resize()
 
     this.onResize = () => this.resize()
-    this.onPointer = (e) => this.#pointer(e)
+    this.onPointer = (e) => {
+      this.mouse.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1)
+      this.parallaxTarget.copy(this.mouse)
+    }
     this.onLeave = () => this.mouse.set(9999, 9999)
     window.addEventListener('resize', this.onResize)
+    window.addEventListener('pointermove', this.onPointer, { passive: true })
+    document.addEventListener('pointerleave', this.onLeave)
     canvas.addEventListener('webglcontextlost', (e) => {
       e.preventDefault()
       this.pause()
       this.onContextLost?.()
     })
-    window.addEventListener('pointermove', this.onPointer, { passive: true })
-    document.addEventListener('pointerleave', this.onLeave)
 
     this.last = performance.now()
     this.loop = this.loop.bind(this)
     requestAnimationFrame(this.loop)
   }
 
-  #buildPoints(color) {
+  #build(color, light) {
     const n = this.count
     const geo = new BufferGeometry()
-    this.from = new Float32Array(n * 4) // xyz + luminance
-    this.to = new Float32Array(n * 4)
+    this.buf = {
+      from: new Float32Array(n * 4),
+      to: new Float32Array(n * 4),
+      colFrom: new Float32Array(n * 4),
+      colTo: new Float32Array(n * 4),
+      toneFrom: new Float32Array(n * 2),
+      toneTo: new Float32Array(n * 2),
+    }
     const rand = new Float32Array(n * 4)
     for (let i = 0; i < n * 4; i++) rand[i] = Math.random()
     this.rand = rand
 
+    // départ : nuage dispersé et invisible, pour l'apparition au chargement
+    for (let i = 0; i < n; i++) {
+      const o = i * 4
+      this.buf.from[o] = (rand[o + 1] - 0.5) * 60
+      this.buf.from[o + 1] = (rand[o + 2] - 0.5) * 40
+      this.buf.from[o + 2] = (rand[o + 3] - 0.5) * 40
+      this.buf.from[o + 3] = 0.05
+    }
+    this.buf.to.set(this.buf.from)
+
     geo.setAttribute('position', new BufferAttribute(new Float32Array(n * 3), 3))
-    geo.setAttribute('aFrom', new BufferAttribute(this.from, 4))
-    geo.setAttribute('aTo', new BufferAttribute(this.to, 4))
+    geo.setAttribute('aFrom', new BufferAttribute(this.buf.from, 4))
+    geo.setAttribute('aTo', new BufferAttribute(this.buf.to, 4))
+    geo.setAttribute('aColFrom', new BufferAttribute(this.buf.colFrom, 4))
+    geo.setAttribute('aColTo', new BufferAttribute(this.buf.colTo, 4))
+    geo.setAttribute('aToneFrom', new BufferAttribute(this.buf.toneFrom, 2))
+    geo.setAttribute('aToneTo', new BufferAttribute(this.buf.toneTo, 2))
     geo.setAttribute('aRand', new BufferAttribute(rand, 4))
 
     this.uniforms = {
@@ -96,9 +121,11 @@ export class PointCloud {
       uMouse: { value: this.mouseWorld },
       uMouseRadius: { value: this.isSmall ? 2.2 : 3.2 },
       uColor: { value: new Color(color) },
+      uLight: { value: light ? 1 : 0 },
+      uColorMode: { value: 0 },
       uOpacity: { value: 1 },
-      uSize: { value: this.isSmall ? 1.0 : 1.35 },
-      uPixelRatio: { value: 1 },
+      uSizeFactor: { value: 0.92 },
+      uScreenScale: { value: 1 },
       uMotion: { value: this.reducedMotion ? 0 : 1 },
     }
 
@@ -129,26 +156,20 @@ export class PointCloud {
     this.renderer.setSize(w, h, false)
     this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
-    this.uniforms.uPixelRatio.value = dpr * (h / 900)
+    // pixels écran par unité monde à distance 1 : une cellule de la grille couvre exactement sa place
+    this.uniforms.uScreenScale.value = (h * dpr) / (2 * Math.tan((this.camera.fov * Math.PI) / 360))
+
     // les cibles dépendent du cadrage : on les recalcule (sauf si seule la hauteur change, ex. barre d'adresse mobile)
     const widthChanged = this.lastWidth !== undefined && this.lastWidth !== w
     this.lastWidth = w
     if (widthChanged && this.targets.size) {
-      const keys = [...this.targets.keys()]
       this.targets.clear()
       clearTimeout(this.resizeTimer)
-      this.resizeTimer = setTimeout(() => {
-        for (const k of keys) if (k === this.currentKey) this.show(k, { instant: true })
-      }, 200)
+      this.resizeTimer = setTimeout(() => this.currentKey && this.show(this.currentKey, { instant: true, force: true }), 200)
     }
   }
 
-  #pointer(e) {
-    this.mouse.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1)
-    this.parallaxTarget.set(this.mouse.x, this.mouse.y)
-  }
-
-  /** Enregistre une cible : un générateur asynchrone qui renvoie un Float32Array (x, y, z, lum). */
+  /** Enregistre une cible : fonction asynchrone (count, view, isSmall) -> { pos, col, tone }. */
   register(key, factory) {
     this.pending.set(key, factory)
   }
@@ -166,63 +187,65 @@ export class PointCloud {
     return this.#resolve(key)
   }
 
-  /** Passe au nuage `key`. */
-  async show(key, { instant = false } = {}) {
+  async show(key, { instant = false, force = false } = {}) {
     this.wanted = key
     const data = await this.#resolve(key)
     if (!data || this.wanted !== key) return
-    if (key === this.currentKey && !instant) return
+    if (key === this.currentKey && !force) return
 
+    const b = this.buf
     if (instant || this.reducedMotion) {
-      this.from.set(data)
-      this.to.set(data)
+      b.from.set(data.pos)
+      b.colFrom.set(data.col)
+      b.toneFrom.set(data.tone)
       this.progress = 1
     } else {
       this.#snapshot()
-      this.to.set(data)
       this.progress = 0
     }
+    b.to.set(data.pos)
+    b.colTo.set(data.col)
+    b.toneTo.set(data.tone)
     this.currentKey = key
-    const g = this.points.geometry
-    g.attributes.aFrom.needsUpdate = true
-    g.attributes.aTo.needsUpdate = true
+    this.userRot.vx = this.userRot.vy = 0
+
+    const a = this.points.geometry.attributes
+    for (const name of ['aFrom', 'aTo', 'aColFrom', 'aColTo', 'aToneFrom', 'aToneTo']) a[name].needsUpdate = true
   }
 
-  /** Fige la position courante (même calcul que le shader) dans `from`, pour enchaîner sans saut. */
+  /** Fige l'état courant (même calcul que le shader) dans `from`, pour enchaîner sans saut. */
   #snapshot() {
-    const { from, to, rand } = this
+    const { from, to, colFrom, colTo, toneFrom, toneTo } = this.buf
+    const rand = this.rand
     const p = this.progress
     if (p >= 1) {
       from.set(to)
+      colFrom.set(colTo)
+      toneFrom.set(toneTo)
       return
     }
     for (let i = 0; i < this.count; i++) {
       const o = i * 4
-      const local = Math.min(Math.max((p - rand[o] * DELAY_SPREAD) / (1 - DELAY_SPREAD), 0), 1)
+      const local = clamp((p - rand[o] * DELAY_SPREAD) / (1 - DELAY_SPREAD), 0, 1)
       const m = easeInOutCubic(local)
       const burst = Math.sin(Math.PI * m)
-      from[o] = from[o] + (to[o] - from[o]) * m + (rand[o + 1] - 0.5) * burst * 6
-      from[o + 1] = from[o + 1] + (to[o + 1] - from[o + 1]) * m + (rand[o + 2] - 0.5) * burst * 6
-      from[o + 2] = from[o + 2] + (to[o + 2] - from[o + 2]) * m + (rand[o + 3] - 0.5) * burst * 10
-      from[o + 3] = from[o + 3] + (to[o + 3] - from[o + 3]) * m
+      from[o] += (to[o] - from[o]) * m + (rand[o + 1] - 0.5) * burst * 6
+      from[o + 1] += (to[o + 1] - from[o + 1]) * m + (rand[o + 2] - 0.5) * burst * 6
+      from[o + 2] += (to[o + 2] - from[o + 2]) * m + (rand[o + 3] - 0.5) * burst * 10
+      from[o + 3] += (to[o + 3] - from[o + 3]) * m
+      for (let c = 0; c < 4; c++) colFrom[o + c] += (colTo[o + c] - colFrom[o + c]) * m
+      toneFrom[i * 2] += (toneTo[i * 2] - toneFrom[i * 2]) * m
+      toneFrom[i * 2 + 1] += (toneTo[i * 2 + 1] - toneFrom[i * 2 + 1]) * m
     }
   }
 
-  /** Valeurs amorties dans la boucle de rendu. */
-  setScroll(v) {
-    this.scrollTarget = v
-  }
-
-  setOpacity(v) {
-    this.opacityTarget = v
-  }
-
-  /** Rotation au glisser : dx, dy en pixels. */
+  /** Rotation au glisser (dx, dy en pixels), limitée. */
   drag(dx, dy) {
-    this.userRot.vy = dx * 0.006
-    this.userRot.vx = dy * 0.004
-    this.userRot.y += this.userRot.vy
-    this.userRot.x = Math.max(-0.9, Math.min(0.9, this.userRot.x + this.userRot.vx))
+    const u = this.userRot
+    u.vy = dx * 0.004
+    u.vx = dy * 0.003
+    u.y = clamp(u.y + u.vy, -ROT_LIMIT.y, ROT_LIMIT.y)
+    u.x = clamp(u.x + u.vx, -ROT_LIMIT.x, ROT_LIMIT.x)
     this.dragging = true
   }
 
@@ -230,8 +253,23 @@ export class PointCloud {
     this.dragging = false
   }
 
-  setColor(color) {
+  setColor(color, light) {
     this.uniforms.uColor.value.set(color)
+    this.uniforms.uLight.value = light ? 1 : 0
+  }
+
+  /** Bascule monochrome / couleurs de l'image. */
+  toggleColorMode() {
+    this.colorTarget = this.colorTarget ? 0 : 1
+    return !!this.colorTarget
+  }
+
+  setScroll(v) {
+    this.scrollTarget = v
+  }
+
+  setOpacity(v) {
+    this.opacityTarget = v
   }
 
   /** Décalage horizontal du nuage, en fraction de la largeur visible. */
@@ -256,36 +294,35 @@ export class PointCloud {
     this.last = now
     this.time += dt
 
-    if (this.progress < 1) {
-      this.progress = Math.min(this.progress + dt / MORPH_DURATION, 1)
-    }
-    this.uniforms.uMix.value = this.progress
-    this.uniforms.uTime.value = this.time
-    const k = 1 - Math.pow(0.001, dt) // amortissement indépendant du framerate
-    this.uniforms.uScroll.value += (this.scrollTarget - this.uniforms.uScroll.value) * k
-    this.uniforms.uOpacity.value += (this.opacityTarget - this.uniforms.uOpacity.value) * k
+    if (this.progress < 1) this.progress = Math.min(this.progress + dt / MORPH_DURATION, 1)
+    const u = this.uniforms
+    u.uMix.value = this.progress
+    u.uTime.value = this.time
+
+    // valeurs amorties, indépendantes du framerate
+    const k = 1 - Math.pow(0.001, dt)
+    u.uScroll.value += (this.scrollTarget - u.uScroll.value) * k
+    u.uOpacity.value += (this.opacityTarget - u.uOpacity.value) * k
+    u.uColorMode.value += (this.colorTarget - u.uColorMode.value) * k
     const ox = this.offsetTarget * this.viewSize.w
     this.points.position.x += (ox - this.points.position.x) * (1 - Math.pow(0.02, dt))
 
-    // souris -> plan z = 0
     const { w, h } = this.viewSize
     this.mouseWorld.set((this.mouse.x * w) / 2 - this.points.position.x, (this.mouse.y * h) / 2, 0)
 
-    // légère parallaxe de caméra
     if (!this.reducedMotion) {
-      this.parallax.lerp(this.parallaxTarget, 0.04)
-      const u = this.userRot
+      this.parallax.lerp(this.parallaxTarget, 1 - Math.pow(0.08, dt))
+      const r = this.userRot
       if (!this.dragging) {
-        // inertie puis retour lent face caméra
-        u.y += u.vy
-        u.x = Math.max(-0.9, Math.min(0.9, u.x + u.vx))
-        u.vx *= Math.pow(0.02, dt)
-        u.vy *= Math.pow(0.02, dt)
-        u.x *= Math.pow(0.6, dt)
-        u.y *= Math.pow(0.6, dt)
+        r.y = clamp(r.y + r.vy, -ROT_LIMIT.y, ROT_LIMIT.y)
+        r.x = clamp(r.x + r.vx, -ROT_LIMIT.x, ROT_LIMIT.x)
+        r.vx *= Math.pow(0.02, dt)
+        r.vy *= Math.pow(0.02, dt)
+        r.x *= Math.pow(0.5, dt)
+        r.y *= Math.pow(0.5, dt)
       }
-      this.points.rotation.y = this.parallax.x * 0.12 + u.y
-      this.points.rotation.x = -this.parallax.y * 0.08 + u.x
+      this.points.rotation.y = this.parallax.x * 0.08 + r.y
+      this.points.rotation.x = -this.parallax.y * 0.05 + r.x
     }
 
     this.renderer.render(this.scene, this.camera)
