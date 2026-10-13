@@ -367,6 +367,9 @@ body {
   color: var(--fg);
 }
 .hero__scroll {
+  /* s'efface avec le texte d'accueil, un peu plus tôt (barre comprise, via ::after) */
+  opacity: calc(1 - min(var(--intro-fade, 0) * 1.4, 1));
+  filter: blur(calc(var(--intro-fade, 0) * 6px));
   position: absolute;
   bottom: 26px;
   left: 50%;
