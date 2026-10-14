@@ -1285,31 +1285,6 @@ html.case-open {
   transform: none;
 }
 
-/* étiquette qui suit le curseur sur les projets */
-.cursor-label {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 90;
-  pointer-events: none;
-  margin: 14px 0 0 14px;
-  padding: 0.45em 0.8em;
-  border-radius: 99px;
-  background: var(--fg);
-  color: var(--bg);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0;
-  scale: 0.6;
-  transition: opacity 0.25s ease, scale 0.35s var(--ease-out);
-}
-.cursor-label.is-on {
-  opacity: 1;
-  scale: 1;
-}
-
 /* contact : confirmation de copie de l'adresse */
 .contact__copied {
   height: 1.2em;

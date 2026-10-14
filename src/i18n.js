@@ -40,7 +40,6 @@ export const ui = {
   contact: L('Contact', 'Contact'),
   scroll: L('Défiler', 'Scroll'),
   skip: L('Aller au contenu', 'Skip to content'),
-  open: L('Voir', 'View'),
   copied: L('Adresse copiée', 'Address copied'),
   workTitle: L('Projets choisis', 'Selected work'),
   skills: L('Compétences', 'Skills'),

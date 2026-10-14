@@ -420,38 +420,6 @@ mailLink.addEventListener('click', () => {
     .catch(() => {})
 })
 
-/* Souris : une étiquette « Voir » accompagne le curseur sur les projets */
-if (!isTouch && !reducedMotion) {
-  const label = document.createElement('div')
-  label.className = 'cursor-label'
-  label.setAttribute('aria-hidden', 'true')
-  label.dataset.t = 'open'
-  label.textContent = tr(ui.open)
-  document.body.append(label)
-  const c = { x: 0, y: 0, tx: 0, ty: 0, on: false, running: false }
-  const tick = () => {
-    c.x += (c.tx - c.x) * 0.22
-    c.y += (c.ty - c.y) * 0.22
-    label.style.transform = `translate3d(${c.x.toFixed(1)}px,${c.y.toFixed(1)}px,0)`
-    if (c.on || Math.abs(c.tx - c.x) > 0.5) requestAnimationFrame(tick)
-    else c.running = false
-  }
-  window.addEventListener('pointermove', (e) => {
-    c.tx = e.clientX
-    c.ty = e.clientY
-    const on = !!e.target.closest?.('.work-link')
-    if (on !== c.on) {
-      c.on = on
-      label.classList.toggle('is-on', on)
-      if (on) (c.x = c.tx), (c.y = c.ty)
-    }
-    if (c.on && !c.running) {
-      c.running = true
-      requestAnimationFrame(tick)
-    }
-  }, { passive: true })
-}
-
 /* Le texte d'accueil fond quand le titre « Projets choisis » apparaît */
 const workTitle = document.getElementById('work-title')
 function updateIntro() {
