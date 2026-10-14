@@ -46,7 +46,7 @@ export const PROFILES = {
     curve: -0.13,
     opacity: 1.1,
     contrast: 1.6,
-    veil: 0.3,
+    veil: 0.15,
     veilMode: 'behind',
     vignette: 1,
     imgVignette: 1.24,

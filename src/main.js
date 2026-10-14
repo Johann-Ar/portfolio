@@ -82,7 +82,8 @@ app.innerHTML = `
     <span class="hero__scroll" aria-hidden="true" data-t="scroll">${esc(tr(ui.scroll))}</span>
   </section>
 
-  <section class="work" id="projets" data-cloud="project" aria-labelledby="work-title">
+  <section class="work" id="projets" data-cloud="project" aria-labelledby="work-title" style="--n:${projects.length}">
+    <div class="work__pin">
     <div class="work__stage" aria-hidden="true"></div>
     <div class="work__inner">
       <h2 class="section-title reveal" id="work-title" data-t="workTitle">${esc(tr(ui.workTitle))}</h2>
@@ -100,6 +101,7 @@ app.innerHTML = `
           )
           .join('')}
       </ul>
+    </div>
     </div>
   </section>
 
@@ -471,20 +473,23 @@ function select(slug) {
   updateCloud()
 }
 
-if (!isTouch) {
-  links.forEach((l) => {
-    l.addEventListener('pointerenter', () => select(l.dataset.slug))
-    l.addEventListener('focus', () => select(l.dataset.slug))
-  })
-} else {
-  // tactile : le projet au centre de l'écran pilote le nuage
-  const io = new IntersectionObserver(
-    (entries) => {
-      for (const e of entries) if (e.isIntersecting) select(e.target.dataset.slug)
-    },
-    { rootMargin: '-45% 0px -45% 0px' },
-  )
-  links.forEach((l) => io.observe(l))
+// survol / focus : le projet pointé s'affiche
+links.forEach((l) => {
+  if (!isTouch) l.addEventListener('pointerenter', () => select(l.dataset.slug))
+  l.addEventListener('focus', () => select(l.dataset.slug))
+})
+
+/* Projets : la section reste bloquée au centre de l'écran ; le défilement sélectionne les projets tour à tour */
+let workIndex = -1
+function updateWork() {
+  const r = workSection.getBoundingClientRect()
+  const travel = r.height - window.innerHeight
+  if (travel <= 0 || r.top > 0 || r.bottom < window.innerHeight) return
+  const p = Math.min(Math.max(-r.top / travel, 0), 0.9999)
+  const i = Math.floor(p * projects.length)
+  if (i === workIndex) return
+  workIndex = i
+  select(projects[i].slug)
 }
 
 /* Le nuage du projet se manipule : glisser pour le faire tourner (rotation limitée, sans changer de projet) */
@@ -532,6 +537,7 @@ let ticking = false
 window.addEventListener(
   'scroll',
   () => {
+    updateWork() // sélection du projet : immédiate, sans attendre l'image suivante
     if (ticking) return
     ticking = true
     requestAnimationFrame(() => {
