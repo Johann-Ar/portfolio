@@ -11,7 +11,7 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
   (calque couleurs, vignettage) suit l'image visible (`src/webgl/PointCloud.js`) ;
 - « splat » : chaque image devient une grille de points (un par pixel échantillonné), avec sa couleur ;
   **la luminance détermine la profondeur**. Touche **Espace** : monochrome → couleurs → monochrome bleu ; **B** : ancien rendu de l'accueil ; **P** : panneau de réglages
-  (taille des points, relief, distance, courbure, opacité, verre, reflets du fond, souris, respiration, parallaxe — mémorisés dans le navigateur) ;
+  (taille des points, relief, distance, courbure, opacité, contraste, luminosité, saturation, fumée, souris, parallaxe — mémorisés dans le navigateur) ;
 - fumée (panneau P) : les points restent fixes, l'image se déforme en volutes de fumée dessous (fbm + domain warping),
   plus fort sous la souris ; intensité, vitesse et fumée au survol réglables ;
 - pixels RVB (panneau P) : chaque point devient un pixel d'écran OLED (PenTile, losanges) vu au microscope, halo réglable ;
