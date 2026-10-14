@@ -1,4 +1,4 @@
-import { PROFILES, PROFILE_LABELS, profileDefaults } from './webgl/settings.js'
+import { PROFILES, PROFILE_LABELS, ProfileStore, profileDefaults } from './webgl/settings.js'
 
 /**
  * Panneau flottant de réglage des splats (touche P).
@@ -59,7 +59,8 @@ function save(profiles) {
 
 const fmt = (v, step) => (step >= 1 ? String(v) : Number(v).toFixed(step < 0.1 ? 2 : 1))
 
-export class SplatPanel {
+/** Panneau de réglages (touche P, mode développement) : édite et mémorise les profils. */
+export class SplatPanel extends ProfileStore {
   /**
    * @param {object} o
    * @param {(mode:number) => void} o.onMode      changement de mode couleur
@@ -69,15 +70,12 @@ export class SplatPanel {
    * @param {(v:string) => void} o.setVolume
    */
   constructor({ onMode, getHeroOld, setHeroOld, getVolume, setVolume }) {
+    super(load())
     this.getVolume = getVolume
     this.setVolume = setVolume
     this.onMode = onMode
     this.getHeroOld = getHeroOld
     this.setHeroOld = setHeroOld
-    this.profiles = load()
-    this.profile = 'hero' // profil modifié par le panneau (section affichée)
-    this.settings = this.profiles[this.profile]
-    this.pageProfile = 'other' // profil de l'image visible (habillage de la page)
 
     const el = document.createElement('aside')
     el.className = 'splat-panel'
@@ -181,7 +179,7 @@ export class SplatPanel {
   #apply(key) {
     const keys = key ? [key] : Object.keys(this.settings)
     for (const k of keys) {
-      if ((k === 'veil' || k === 'veilMode' || k === 'vignette') && this.profile === this.pageProfile) this.#writePage()
+      if ((k === 'veil' || k === 'veilMode' || k === 'vignette') && this.profile === this.pageProfile) this.writePage()
       const input = this.el.querySelector(`[data-key="${k}"]`)
       const s = SLIDERS.find((x) => x.key === k)
       if (input) input.value = this.settings[k]
@@ -190,41 +188,20 @@ export class SplatPanel {
     }
   }
 
-  /** Habillage de la page (calque couleurs, vignettage écran) : celui de l'image visible. */
-  #writePage() {
-    const s = this.profiles[this.pageProfile] || this.profiles.other
-    const root = document.documentElement
-    root.style.setProperty('--veil', s.veil)
-    root.style.setProperty('--vignette', s.vignette)
-    root.dataset.veil = s.veilMode
-  }
-
-  /** L'image d'un profil commence à apparaître (ou la scène se vide : 'other'). */
-  setPage(profile) {
-    this.pageProfile = PROFILES[profile] ? profile : 'other'
-    this.#writePage()
-  }
-
-  /** Réglages d'un profil (lus en continu par la scène). */
-  get(profile) {
-    return this.profiles[profile] || this.profiles.other
-  }
-
   /** Profil modifié par le panneau : celui de la section affichée. */
   setProfile(name) {
-    if (!PROFILES[name] || name === this.profile) return
-    this.profile = name
-    this.settings = this.profiles[name]
+    if (!super.setProfile(name)) return false
     this.#apply()
     this.sync()
+    return true
   }
 
   /** Mode de couleur (Espace ou boutons) du profil courant. */
   setMode(mode) {
-    this.settings.mode = ((mode % 3) + 3) % 3
+    const m = super.setMode(mode)
     save(this.profiles)
     this.sync()
-    return this.settings.mode
+    return m
   }
 
   sync() {
@@ -248,7 +225,7 @@ export class SplatPanel {
     this.profiles[this.profile] = this.settings = profileDefaults(this.profile)
     save(this.profiles)
     this.#apply()
-    if (this.profile === this.pageProfile) this.#writePage()
+    if (this.profile === this.pageProfile) this.writePage()
     this.sync()
   }
 

@@ -186,6 +186,9 @@ export class PointCloud {
     this.userRot = { x: 0, y: 0, vx: 0, vy: 0 }
     this.time = 0
     this.running = true
+    // qualité adaptative : si l'appareil peine, la résolution du rendu baisse par paliers
+    this.quality = 1
+    this.perf = { frames: 0, time: 0 }
 
     this.#buildShared(color)
     this.resize()
@@ -268,7 +271,7 @@ export class PointCloud {
     const w = window.innerWidth
     const h = window.innerHeight
     // rendu au moins en double résolution (suréchantillonnage) : des points de 2 px restent des disques nets
-    const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 2), this.isSmall ? 2 : 2.5)
+    const dpr = Math.max(1, Math.min(Math.max(window.devicePixelRatio || 1, 2), this.isSmall ? 2 : 2.5) * this.quality)
     this.renderer.setPixelRatio(dpr)
     this.renderer.setSize(w, h, false)
     this.camera.aspect = w / h
@@ -452,10 +455,27 @@ export class PointCloud {
     }
   }
 
+  /** Mesure le rythme d'affichage ; en dessous de ~42 images/s, on baisse la résolution (jusqu'à 55 %). */
+  #adapt(rawDt) {
+    if (rawDt > 0.25 || !(this.current || this.leaving)) return // onglet en pause ou scène vide : pas de mesure
+    const p = this.perf
+    p.frames++
+    p.time += rawDt
+    if (p.time < 2) return
+    const fps = p.frames / p.time
+    p.frames = p.time = 0
+    if (fps < 42 && this.quality > 0.55) {
+      this.quality = Math.max(0.55, this.quality - 0.15)
+      this.resize()
+    }
+  }
+
   loop(now) {
     if (!this.running) return
-    const dt = Math.min((now - this.last) / 1000, 0.05)
+    const rawDt = (now - this.last) / 1000
+    const dt = Math.min(rawDt, 0.05)
     this.last = now
+    this.#adapt(rawDt)
     this.time += dt
     this.shared.uniforms.uTime.value = this.time
 
@@ -508,7 +528,10 @@ export class PointCloud {
     if (warmOnce) warming.points.visible = true
 
     for (const hook of this.frameHooks) hook(dt) // calques additionnels (élément en verre, volumétrie SHARP)
-    this.renderer.render(this.scene, this.camera)
+    // scène vide (sections sans image) : une dernière image vide, puis plus aucun rendu
+    const empty = !this.current && !this.leaving && !warmOnce && !this.frameHooks.length
+    if (!empty || !this.clearedEmpty) this.renderer.render(this.scene, this.camera)
+    this.clearedEmpty = empty
     if (warmOnce) warming.points.visible = false
     requestAnimationFrame(this.loop)
   }

@@ -3,7 +3,7 @@
 
 Les fichiers eux-mêmes sont convertis (le site n'a rien à recalculer) :
   - les sources media-src/site/*.png (puis `npm run media` régénère les .webp) ;
-  - les volumes SHARP public/splats/*.spz : la couleur de chaque gaussienne devient sa luminance.
+  - les volumes SHARP splats/*.spz : la couleur de chaque gaussienne devient sa luminance.
 
     python3 scripts/grayscale.py
 """
@@ -16,7 +16,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 IMAGES = ["media-src/site/portrait.png", "media-src/site/view-near.png"]
-SPLATS = ["public/splats/hero.spz", "public/splats/contact.spz"]
+SPLATS = ["splats/hero.spz", "splats/contact.spz"]
 LUMA = np.array([0.2126, 0.7152, 0.0722])  # Rec. 709, comme les shaders du site
 
 

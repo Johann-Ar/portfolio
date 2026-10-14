@@ -122,3 +122,51 @@ export const PROFILES = {
 export const PROFILE_LABELS = { hero: 'Accueil', project: 'Projets', contact: 'Contact', other: 'Autres sections' }
 
 export const profileDefaults = (name) => ({ mode: 0, ...DEFAULT_SETTINGS, ...PROFILES[name] })
+
+/**
+ * Réglages par profil. Site en ligne : valeurs par défaut ci-dessus.
+ * Le panneau P (mode développement, `?dev`) en hérite et y ajoute l'édition et la mémorisation.
+ */
+export class ProfileStore {
+  constructor(profiles) {
+    this.profiles = profiles ?? Object.fromEntries(Object.keys(PROFILES).map((n) => [n, profileDefaults(n)]))
+    this.profile = 'hero' // profil de la section affichée
+    this.settings = this.profiles[this.profile]
+    this.pageProfile = 'other' // profil de l'image visible (habillage de la page)
+  }
+
+  /** Réglages d'un profil (lus en continu par la scène). */
+  get(profile) {
+    return this.profiles[profile] || this.profiles.other
+  }
+
+  setProfile(name) {
+    if (!PROFILES[name] || name === this.profile) return false
+    this.profile = name
+    this.settings = this.profiles[name]
+    return true
+  }
+
+  /** L'image d'un profil commence à apparaître (ou la scène se vide : 'other'). */
+  setPage(profile) {
+    this.pageProfile = PROFILES[profile] ? profile : 'other'
+    this.writePage()
+  }
+
+  /** Habillage de la page (calque couleurs, vignettage écran) : celui de l'image visible. */
+  writePage() {
+    const s = this.get(this.pageProfile)
+    const root = document.documentElement
+    root.style.setProperty('--veil', s.veil)
+    root.style.setProperty('--vignette', s.vignette)
+    root.dataset.veil = s.veilMode
+  }
+
+  setMode(mode) {
+    this.settings.mode = ((mode % 3) + 3) % 3
+    return this.settings.mode
+  }
+
+  sync() {}
+  status() {}
+}

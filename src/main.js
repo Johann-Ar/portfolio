@@ -8,10 +8,26 @@ import './styles/main.css'
 import Lenis from 'lenis'
 import { site, skills, about, timeline, projects } from './content.js'
 import { CaseView } from './case.js'
-import { SplatPanel } from './panel.js'
+import { ProfileStore } from './webgl/settings.js'
 import { lang, tr, ui, setLang, onLang } from './i18n.js'
 
 const BASE = import.meta.env.BASE_URL
+
+/*
+ * Mode développement (`?dev`, mémorisé ; `?dev=0` pour le quitter ; toujours actif avec `npm run dev`) :
+ * panneau de réglages (P), touches Espace / B / V, volumétrie SHARP, élément en verre, ancien rendu de l'accueil.
+ * En ligne, le visiteur ne charge que le site, avec les réglages par défaut.
+ */
+const DEV = (() => {
+  const q = new URLSearchParams(location.search).get('dev')
+  try {
+    if (q === '0') localStorage.removeItem('dev')
+    else if (q !== null) localStorage.setItem('dev', '1')
+    return import.meta.env.DEV || localStorage.getItem('dev') === '1'
+  } catch {
+    return import.meta.env.DEV || (q !== null && q !== '0')
+  }
+})()
 
 // au lancement, on arrive toujours sur l'accueil (pas de reprise de scroll ni d'ancre de section)
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
@@ -230,6 +246,7 @@ function hasWebGL() {
 }
 
 async function initCloud() {
+  await panelReady // les réglages (panneau en mode développement) avant la première image
   if (!hasWebGL()) {
     root.classList.add('no-webgl')
     return
@@ -245,21 +262,22 @@ async function initCloud() {
     root.classList.toggle('show-veil', !!profile)
   }
   cloud.onContextLost = () => root.classList.add('no-webgl')
-  // élément 3D en verre au centre de l'accueil (technique de la référence, forme de Johann)
-  import('./webgl/GlassElement.js')
-    .then(({ GlassElement }) => {
-      logo = new GlassElement(cloud)
-      updateCloud()
-    })
-    .catch((err) => console.warn('Élément 3D indisponible', err))
+  // mode développement : élément 3D en verre au centre de l'accueil (technique de la référence, forme de Johann)
+  if (DEV)
+    import('./webgl/GlassElement.js')
+      .then(({ GlassElement }) => {
+        logo = new GlassElement(cloud)
+        updateCloud()
+      })
+      .catch((err) => console.warn('Élément 3D indisponible', err))
   // accueil : la photo remplit l'écran et déborde du cadre
   const portrait = `${BASE}media/site/portrait.webp`
   // accueil et contact : images reculées, bord à bord, profondeur inversée (clair = loin, foncé = proche)
   const far = { fit: 'cover', distance: 34, depth: 14, invertDepth: true }
   // logo en volume possible via l'option overlay d'imageTarget (voir scripts/logo-volume.py)
   cloud.register('hero', imageTarget(portrait, { ...far, focusX: 0.6 }))
-  // touche B : ancienne version (points répartis selon la lumière), toujours plein écran
-  cloud.register('hero-old', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6 }))
+  // mode développement, touche B : ancienne version (points répartis selon la lumière), toujours plein écran
+  if (DEV) cloud.register('hero-old', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6 }))
   // contact : Thomas Gainsborough, « View near King's Bromley-on-Trent » (domaine public)
   cloud.register('contact', imageTarget(`${BASE}media/site/view-near.webp`, far))
   // projets : les couvertures du portfolio (imprimées sur fond blanc)
@@ -318,13 +336,13 @@ function setHeroOld(v) {
   updateCloud()
   panel.sync()
 }
-const panel = new SplatPanel({
-  onMode: setColorMode,
-  getHeroOld: () => heroOld,
-  setHeroOld,
-  getVolume: () => volume,
-  setVolume,
-})
+// réglages par profil ; en mode développement, le panneau P (éditable, mémorisé) prend le relais
+let panel = new ProfileStore()
+const panelReady = DEV
+  ? import('./panel.js').then(({ SplatPanel }) => {
+      panel = new SplatPanel({ onMode: setColorMode, getHeroOld: () => heroOld, setHeroOld, getVolume: () => volume, setVolume })
+    })
+  : Promise.resolve()
 
 function updateCloud() {
   const vh = window.innerHeight
@@ -456,7 +474,7 @@ stage.addEventListener('pointercancel', endDrag)
 
 /* Espace : monochrome / couleurs de l'image. B : ancienne version du splat de l'accueil */
 window.addEventListener('keydown', (e) => {
-  if (e.repeat || !cloud || caseView.isOpen || e.metaKey || e.ctrlKey || e.altKey) return
+  if (!DEV || e.repeat || !cloud || caseView.isOpen || e.metaKey || e.ctrlKey || e.altKey) return
   const inPanel = e.target.closest?.('.splat-panel')
   if ((e.key === 'p' || e.key === 'P') && (inPanel || !e.target.closest?.('input, textarea, select, [contenteditable]'))) {
     panel.toggle()

@@ -5,12 +5,12 @@ Chaîne complète (voir README, section « Volumétrie SHARP ») :
   1. SHARP (Apple, github.com/apple/ml-sharp) : une image -> un .ply de gaussiennes 3D
        sharp predict -i images/ -o ply/ --device cpu --no-render
   2. ce script : .ply -> .spz (format compressé de Niantic, github.com/nianticlabs/spz)
-       python3 scripts/ply-to-spz.py ply/ public/splats/ [--max 600000]
+       python3 scripts/ply-to-spz.py ply/ splats/ [--max 600000]
 
 Étapes : les éléments annexes du .ply de SHARP (caméra, etc.) sont retirés, les gaussiennes
 quasi transparentes sont écartées, la scène est passée du repère OpenCV (x droite, y bas,
 z avant) au repère Three.js (x droite, y haut, z arrière) puis recentrée.
-Un fichier public/splats/index.json décrit chaque scène (centre, taille, nombre de gaussiennes).
+Un fichier splats/index.json décrit chaque scène (centre, taille, nombre de gaussiennes).
 """
 import json
 import os

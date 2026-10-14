@@ -38,6 +38,14 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
   `?lang=en` force l'anglais) ; les textes changent sur place sans recharger la 3D ;
 - typos libres : Bricolage Grotesque variable (titres, taille optique), Figtree (texte), IBM Plex Mono (étiquettes).
 
+## Mode développement
+
+Les outils de réglage ne sont pas chargés pour les visiteurs. Ajouter **`?dev`** à l'adresse (mémorisé dans le
+navigateur, `?dev=0` pour en sortir ; toujours actif avec `npm run dev`) donne accès au panneau de réglages (**P**),
+aux touches **Espace** (mono / couleur / bleu), **B** (ancien rendu de l'accueil) et **V** (volumétrie SHARP),
+et à l'élément 3D en verre. Les fichiers SHARP (`splats/`, ≈ 80 Mo) ne sont pas publiés : ils ne sont servis
+que par `npm run dev` et `npm run preview`.
+
 ## Lancer en local
 
 ```bash
@@ -85,8 +93,8 @@ Mode alternatif : vrais Gaussian splats 3D au lieu du nuage de points.
    ```
 2. **SPZ** (Niantic, [github.com/nianticlabs/spz](https://github.com/nianticlabs/spz)) : compression (~4–5× plus léger) :
    ```bash
-   python3 scripts/ply-to-spz.py ply/ public/splats/            # pleine qualité
-   python3 scripts/ply-to-spz.py ply/ public/splats/ --max 600000  # allégé pour le web
+   python3 scripts/ply-to-spz.py ply/ splats/            # pleine qualité
+   python3 scripts/ply-to-spz.py ply/ splats/ --max 600000  # allégé pour le web
    ```
    Le script écrit des SPZ v3 (gzip), la v4 (zstd) n'étant pas encore lue par Spark.
 3. **Spark** (World Labs, [sparkjs.dev](https://sparkjs.dev)) : rendu dans la scène Three.js, chargé à la demande.
@@ -99,5 +107,5 @@ Photographies de la série « Invisible » et « La couleur de l'eau » : © Nic
 Captations ROV : Schmidt Ocean Institute.
 Contact : Thomas Gainsborough, *View near King's Bromley-on-Trent* (domaine public).
 Volumétrie : Apple Machine Learning Research Model is licensed under the Apple Machine Learning Research Model License
-Agreement (`public/splats/LICENSE_MODEL.txt`). Les fichiers `public/splats/*.spz` sont des dérivés du modèle SHARP
+Agreement (`splats/LICENSE_MODEL.txt`). Les fichiers `splats/*.spz` sont des dérivés du modèle SHARP
 (gaussiennes prédites puis compressées en SPZ), réservés à un usage non commercial de recherche.
