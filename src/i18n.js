@@ -33,7 +33,7 @@ export const onLang = (fn) => listeners.push(fn)
 
 /** Libellés de l'interface. */
 export const ui = {
-  role: L('Designer numérique', 'Digital designer'),
+  role: L('Designer numérique, interface & interaction', 'Digital designer, interface & interaction'),
   nav: L('Navigation principale', 'Main navigation'),
   work: L('Projets', 'Work'),
   about: L('À propos', 'About'),
@@ -50,7 +50,7 @@ export const ui = {
   playFilm: L('Lire le film', 'Play the film'),
   playVideo: L('Lire la vidéo', 'Play the video'),
   description: L(
-    'Johann Arata, designer numérique. Des images réelles transformées en espaces 3D à explorer dans le navigateur.',
-    'Johann Arata, digital designer. Real images turned into 3D spaces you can explore in the browser.',
+    'Johann Arata, designer numérique : interfaces, expériences interactives et espaces 3D pour le web.',
+    'Johann Arata, digital designer: interfaces, interactive experiences and 3D spaces for the web.',
   ),
 }

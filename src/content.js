@@ -15,13 +15,13 @@ import { L } from './i18n.js'
 
 export const site = {
   name: 'Johann Arata',
-  role: L('Designer numérique', 'Digital designer'),
+  role: L('Designer numérique, interface & interaction', 'Digital designer, interface & interaction'),
   location: 'France',
   email: 'arata.johann@gmail.com',
   phone: '+33 7 71 70 25 85',
   intro: L(
-    'Designer numérique. Je transforme des images réelles en espaces 3D à explorer dans le navigateur.',
-    'Digital designer. I turn real images into 3D spaces you can explore in the browser.',
+    'Designer numérique. Je conçois des interfaces, des expériences interactives et des espaces 3D pour le web.',
+    'Digital designer. I design interfaces, interactive experiences and 3D spaces for the web.',
   ),
   socials: [
     { label: 'Mail', href: 'mailto:arata.johann@gmail.com' },
@@ -32,6 +32,9 @@ export const site = {
 
 /** Grand bloc de mots : compétences listées dans le CV. */
 export const skills = [
+  L('Design d’interface', 'Interface design'),
+  L('Design interactif', 'Interaction design'),
+  L('Prototypage', 'Prototyping'),
   'Three.js',
   'WebGL',
   'Shaders',
@@ -51,10 +54,13 @@ export const about = [
     'I’m a digital designer, studying for a **master’s in Digital Design** at the Faculty of Arts in Strasbourg, after a three-year design degree (DNMADe).',
   ),
   L(
-    'Je pars d’**images réelles** — photos sous-marines, vidéos de grands fonds, une rivière filmée en GoPro — pour en faire des **espaces 3D à parcourir**. Je les développe moi-même, en Three.js, avec l’IA pour lire la profondeur et isoler les formes.',
-    'I start from **real images** — underwater photographs, deep-sea footage, a river filmed on a GoPro — and turn them into **3D spaces you can move through**. I build them myself in Three.js, using AI to read depth and isolate shapes.',
+    'Je conçois des **interfaces** et des **expériences interactives**, de l’intention au prototype fonctionnel, en les développant moi-même pour le web. Une part de mon travail part de **l’image** — photographie, vidéo, données — que je traduis en **espaces 3D** et en dispositifs à parcourir.',
+    'I design **interfaces** and **interactive experiences**, from intent to working prototype, and build them myself for the web. Part of my work starts from **images** — photography, video, data — which I translate into **3D spaces** and experiences people can move through.',
   ),
-  L('Je cherche un **stage en design numérique et 3D temps réel**.', 'I’m looking for an **internship in digital design and real-time 3D**.'),
+  L(
+    'Je cherche un **stage en design d’interface, design interactif ou 3D temps réel**.',
+    'I’m looking for an **internship in interface design, interaction design or real-time 3D**.',
+  ),
 ]
 
 export const timeline = [
