@@ -255,7 +255,7 @@ body {
   right: 0;
   z-index: 50;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end; /* le nom est dans l'accueil, en haut à gauche */
   align-items: center;
   padding: 26px var(--edge);
   font-size: var(--nav-size);
@@ -364,8 +364,8 @@ body {
   height: 100svh;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  padding: 0 var(--edge) 13vh;
+  justify-content: flex-start; /* nom et accroche en haut à gauche */
+  padding: clamp(22px, 4.5vh, 48px) var(--edge) 13vh;
 }
 /* le nom, la phrase d'accroche et les repères s'effacent quand « Projets choisis » arrive (--intro-fade) */
 .hero__content {
@@ -421,7 +421,7 @@ body {
 }
 @media (max-width: 768px) {
   .hero {
-    padding-bottom: 16vh;
+    padding-top: 64px; /* sous la barre de navigation */
   }
 }
 
