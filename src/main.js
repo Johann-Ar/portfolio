@@ -33,11 +33,13 @@ let logo = null
    Rendu
 ------------------------------------------------------------------- */
 
-// les compétences, réparties en lignes qui glissent en sens opposés au scroll
+// les compétences, réparties en lignes qui défilent en continu, en sens opposés
 const rows = [[], [], []]
 skills.forEach((s, i) => rows[i % rows.length].push(s))
-const rowText = (row, i) => row.map((w, j) => (j < row.length - 1 || i < rows.length - 1 ? `${tr(w)},` : tr(w))).join(' ')
-const tagText = (p) => `// ${tr(p.tag)}`
+// une ligne = son texte répété deux fois (boucle sans raccord) ; la copie est ignorée par les lecteurs d'écran
+const rowText = (row) => row.map((w) => `${tr(w)}, `).join('')
+const rowHtml = (row) => `<span>${esc(rowText(row))}</span><span aria-hidden="true">${esc(rowText(row))}</span>`
+const metaText = (p) => `${p.year} — ${tr(p.tag)}`
 const timelineCol = (col) => `
           <h3>${esc(tr(col.title))}</h3>
           <ul>
@@ -54,8 +56,11 @@ const timelineCol = (col) => `
 const app = document.getElementById('app')
 app.innerHTML = `
   <section class="hero" id="top" data-cloud="hero">
-    <h1 class="u-visually-hidden">${esc(site.name)}, <span data-t="role">${esc(tr(ui.role))}</span></h1>
-    <p class="hero__intro words" data-words>${esc(tr(site.intro))}</p>
+    <div class="hero__content">
+      <h1 class="hero__name">${esc(site.name)}<span class="u-visually-hidden">, <span data-t="role">${esc(tr(ui.role))}</span></span></h1>
+      <p class="hero__intro words" data-words>${esc(tr(site.intro))}</p>
+    </div>
+    <p class="hero__status"><span class="hero__dot" aria-hidden="true"></span><span data-t="available">${esc(tr(ui.available))}</span></p>
     <span class="hero__scroll" aria-hidden="true" data-t="scroll">${esc(tr(ui.scroll))}</span>
   </section>
 
@@ -69,7 +74,9 @@ app.innerHTML = `
             (p, i) => `
           <li class="reveal" style="--i:${i}">
             <a class="work-link" href="#/${p.slug}" data-slug="${p.slug}">
-              <b>${esc(p.title)}</b><span>${esc(tagText(p))}</span>
+              <span class="work-link__num" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>
+              <b>${esc(p.title)}</b>
+              <span class="work-link__meta">${esc(metaText(p))}</span>
             </a>
           </li>`,
           )
@@ -79,7 +86,7 @@ app.innerHTML = `
   </section>
 
   <section class="skills" aria-label="${esc(tr(ui.skills))}" data-cloud="none">
-    ${rows.map((row, i) => `<p class="skills__row" data-dir="${i % 2 ? -1 : 1}">${esc(rowText(row, i))}</p>`).join('')}
+    ${rows.map((row, i) => `<p class="skills__row" data-dir="${i % 2 ? -1 : 1}">${rowHtml(row)}</p>`).join('')}
   </section>
 
   <section class="about" id="a-propos" data-cloud="none" aria-labelledby="about-title">
@@ -158,9 +165,9 @@ function applyLang() {
   })
   document.querySelectorAll('.work-link').forEach((l) => {
     const p = projects.find((x) => x.slug === l.dataset.slug)
-    l.querySelector('span').textContent = tagText(p)
+    l.querySelector('.work-link__meta').textContent = metaText(p)
   })
-  document.querySelectorAll('.skills__row').forEach((el, i) => (el.textContent = rowText(rows[i], i)))
+  document.querySelectorAll('.skills__row').forEach((el, i) => (el.innerHTML = rowHtml(rows[i])))
   document.querySelectorAll('.timeline > div').forEach((el, i) => (el.innerHTML = timelineCol(timeline[i])))
   metaDesc?.setAttribute('content', tr(ui.description))
   baseTitle = `${site.name} — ${tr(ui.role)}`
@@ -322,7 +329,8 @@ const panel = new SplatPanel({
 function updateCloud() {
   const vh = window.innerHeight
   const heroProgress = Math.min(window.scrollY / vh, 1)
-  const mid = vh * 0.5
+  // une section prend la main dès qu'elle couvre le bas de l'écran (l'image précédente part avant l'arrivée du titre)
+  const mid = vh * 0.7
   let section = sections[0]
   for (const s of sections) {
     if (s.getBoundingClientRect().top <= mid) section = s
@@ -368,17 +376,37 @@ function updateIntro() {
   root.style.setProperty('--intro-fade', f.toFixed(3))
 }
 
-/* Compétences : les lignes glissent en sens opposés */
+/* Compétences : les lignes défilent en continu (sens opposés), plus vite quand on fait défiler la page */
 const skillRows = [...document.querySelectorAll('.skills__row')]
 const skillsSection = document.querySelector('.skills')
-function updateSkills() {
-  if (reducedMotion) return
-  const r = skillsSection.getBoundingClientRect()
-  const p = (window.innerHeight - r.top) / (window.innerHeight + r.height) - 0.5
-  if (p < -0.6 || p > 0.6) return
-  skillRows.forEach((row) => {
-    row.style.transform = `translate3d(${(row.dataset.dir * p * 24).toFixed(2)}vw,0,0)`
+const skills$ = { visible: false, widths: null, offset: 0, boost: 0, lastY: 0, lastT: 0 }
+const measureSkills = () => (skills$.widths = skillRows.map((row) => row.firstElementChild.offsetWidth))
+function tickSkills(t) {
+  if (!skills$.visible) return
+  const dt = skills$.lastT ? Math.min((t - skills$.lastT) / 1000, 0.05) : 0
+  skills$.lastT = t
+  const dy = Math.abs(window.scrollY - skills$.lastY)
+  skills$.lastY = window.scrollY
+  // élan donné par le défilement, qui retombe doucement
+  skills$.boost += (Math.min(dy, 120) * 9 - skills$.boost) * (1 - Math.pow(0.02, dt))
+  skills$.offset += (45 + skills$.boost) * dt
+  if (!skills$.widths) measureSkills()
+  skillRows.forEach((row, i) => {
+    const w = skills$.widths[i] || 1
+    const x = skills$.offset % w
+    row.style.transform = `translate3d(${row.dataset.dir > 0 ? -x : x - w}px,0,0)`
   })
+  requestAnimationFrame(tickSkills)
+}
+if (!reducedMotion) {
+  new IntersectionObserver(([e]) => {
+    skills$.visible = e.isIntersecting
+    skills$.lastT = 0
+    skills$.lastY = window.scrollY
+    if (skills$.visible) requestAnimationFrame(tickSkills)
+  }).observe(skillsSection)
+  window.addEventListener('resize', () => (skills$.widths = null))
+  onLang(() => (skills$.widths = null))
 }
 
 /* Survol des projets */
@@ -454,7 +482,6 @@ window.addEventListener(
     requestAnimationFrame(() => {
       ticking = false
       updateCloud()
-      updateSkills()
       updateIntro()
     })
   },
@@ -545,7 +572,6 @@ Promise.all([
       stageReady = true
       // les points dispersés se rassemblent pour former l'image d'accueil
       updateCloud()
-      updateSkills()
       updateIntro()
       route()
       const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1200))

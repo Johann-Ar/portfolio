@@ -98,6 +98,7 @@ export const projects = [
   {
     slug: 'dumbo',
     title: 'Dumbo',
+    year: '2026',
     tag: L('Three.js, IA', 'Three.js, AI'),
     cloud: 'dumbo/cover.webp',
     text: L(
@@ -127,6 +128,7 @@ export const projects = [
   {
     slug: 'photographique-volume',
     title: 'Photographique Volume',
+    year: '2025 — 26',
     tag: L('Three.js, son', 'Three.js, sound'),
     cloud: 'photographique-volume/cover.webp',
     text: L(
@@ -156,6 +158,7 @@ export const projects = [
   {
     slug: '4derives',
     title: '4Dérives',
+    year: '2025 — 26',
     tag: L('Film, 3D', 'Film, 3D'),
     cloud: '4derives/cover.webp',
     text: L(
@@ -184,6 +187,7 @@ export const projects = [
   {
     slug: 'mondes-immerges',
     title: 'Mondes Immergés',
+    year: '2024 — 25',
     tag: L('Recherche', 'Research'),
     cloud: 'mondes-immerges/cover.webp',
     text: L(
