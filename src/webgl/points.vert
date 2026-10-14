@@ -135,7 +135,9 @@ void main() {
   vec3 scatter = img + (aRand.yzw - 0.5) * vec3(26.0, 18.0, 30.0) + vec3(0.0, 0.0, 6.0);
   vec3 pos = mix(img, mix(scatter, img, m), uMotion);
   pos += (aRand.zwy - 0.5) * vec3(4.0, 4.0, 6.0) * burst;
-  float cell = aPos.w * mix(0.3, 1.0, m);
+  // taille : minuscules au départ, les points ne grossissent qu'en arrivant (et rapetissent d'abord en disparaissant)
+  float grow = m * m * (3.0 - 2.0 * m);
+  float cell = aPos.w * mix(0.04, 1.0, grow * grow);
 
   vec4 col = vec4(clamp((aCol.rgb - 0.5) * uContrast + 0.5, 0.0, 1.0), aCol.a);
   vec2 toneRaw = aTone;
