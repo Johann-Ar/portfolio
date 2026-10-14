@@ -549,7 +549,10 @@ Promise.all([
       updateIntro()
       route()
       const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1200))
-      idle(() => projects.forEach((p) => cloud?.preload(p.slug)))
+      // les autres images se préparent une par une, aux moments creux (jamais toutes d'un coup pendant une transition)
+      const queue = [...projects.map((p) => p.slug), 'contact']
+      const next = () => queue.length && cloud?.preload(queue.shift()).then(() => idle(next))
+      idle(next)
     },
     reducedMotion ? 0 : 450,
   )

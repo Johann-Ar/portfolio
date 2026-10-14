@@ -89,15 +89,18 @@ vec3 smoke(vec2 uv, float t) {
   return vec3(r - 0.5, dens);
 }
 
-float easeInOutCubic(float t) {
-  return t < 0.5 ? 4.0 * t * t * t : 1.0 - pow(-2.0 * t + 2.0, 3.0) / 2.0;
+// arrivée rapide puis pose en douceur (la disparition, jouée à l'envers, part doucement puis s'accélère)
+float easeOutQuart(float t) {
+  float u = 1.0 - t;
+  return 1.0 - u * u * u * u;
 }
 
 void main() {
-  // apparition / disparition : chaque point part (ou repart) avec un léger décalage, et s'écarte à mi-parcours
-  float local = clamp((uReveal - aRand.x * uDelaySpread) / (1.0 - uDelaySpread), 0.0, 1.0);
-  float m = easeInOutCubic(local);
-  float burst = sin(3.14159265 * m) * uMotion;
+  // apparition / disparition : une vague qui part du centre de l'image (avec un peu de hasard pour l'organique)
+  float order = mix(aRand.x, clamp(length(aUv.xy - 0.5) * 1.414, 0.0, 1.0), 0.65);
+  float local = clamp((uReveal - order * uDelaySpread) / (1.0 - uDelaySpread), 0.0, 1.0);
+  float m = easeOutQuart(local);
+  float burst = sin(3.14159265 * m) * (1.0 - m) * uMotion; // léger écart en chemin, nul à l'arrivée
   float baseOff = aOff;
   float off = baseOff + uPush;
 
@@ -127,9 +130,10 @@ void main() {
   }
 
   // 2. du nuage dispersé à l'image (sans mouvement réduit : les points restent en place et s'allument)
-  vec3 scatter = (aRand.yzw - 0.5) * vec3(60.0, 40.0, 40.0);
+  // nuage de départ : autour de l'image, un peu en avant (les points arrivent vers l'écran puis s'y posent)
+  vec3 scatter = img + (aRand.yzw - 0.5) * vec3(26.0, 18.0, 30.0) + vec3(0.0, 0.0, 6.0);
   vec3 pos = mix(img, mix(scatter, img, m), uMotion);
-  pos += (aRand.yzw - 0.5) * vec3(6.0, 6.0, 10.0) * burst;
+  pos += (aRand.zwy - 0.5) * vec3(4.0, 4.0, 6.0) * burst;
   float cell = aPos.w * mix(0.3, 1.0, m);
 
   vec4 col = vec4(clamp((aCol.rgb - 0.5) * uContrast + 0.5, 0.0, 1.0), aCol.a);
@@ -138,6 +142,7 @@ void main() {
   float kEarly = (uCamZ + off) / uCamZ;
   float hoverF = smoothstep(uMouseRadius * 1.6 * kEarly, 0.0, length(img.xy - uMouse.xy * kEarly)) * uMotion;
   float amt = uAnim + hoverF * uSmokeHover;
+  amt *= step(0.02, m); // points encore dispersés : pas de fumée (calcul coûteux inutile pendant les transitions)
   if (amt > 0.001 && aCol.a > 0.0) {
     float ta = uTime * uAnimSpeed;
     vec4 c0 = texture2D(uImage, aUv.xy);

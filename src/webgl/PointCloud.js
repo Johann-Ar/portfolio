@@ -33,9 +33,10 @@ import { DEFAULT_SETTINGS } from './settings.js'
  * lus à chaque image : une modification dans le panneau s'applique en douceur au calque concerné.
  */
 
-const APPEAR = 1.6 // durée de l'apparition (s)
-const DISAPPEAR = 1.0 // durée de la disparition (s)
-const DELAY_SPREAD = 0.35 // décalage aléatoire entre les points
+const APPEAR = 1.7 // durée de l'apparition (s)
+const DISAPPEAR = 1.1 // durée de la disparition (s)
+const DELAY_SPREAD = 0.5 // étalement de la vague (part du temps pendant laquelle les points partent l'un après l'autre)
+const HANDOVER = 0.12 // l'image suivante commence quand la précédente est presque éteinte (pas de temps mort)
 const ROT_LIMIT = { x: 0.22, y: 0.4 } // rotation manuelle volontairement limitée
 
 // réglage du panneau -> uniform du shader (valeurs continues, rejointes en douceur)
@@ -442,11 +443,11 @@ export class PointCloud {
     if (!layer.dir) return
     const duration = this.reducedMotion ? 0.35 : layer.dir > 0 ? APPEAR : DISAPPEAR
     layer.reveal = clamp(layer.reveal + (layer.dir * dt) / duration, 0, 1)
-    layer.uniforms.uReveal.value = layer.reveal
+    layer.uniforms.uReveal.value = layer.reveal * layer.reveal * (3 - 2 * layer.reveal) // départ et fin adoucis
     if (layer.dir > 0 && layer.reveal >= 1) layer.dir = 0
     if (layer.dir < 0 && layer.reveal <= 0) {
       this.#drop(layer)
-      this.onStage?.(null) // scène vide : l'habillage de l'image partie s'en va avec elle
+      if (!this.current) this.onStage?.(null) // scène vide : l'habillage de l'image partie s'en va avec elle
     }
   }
 
@@ -459,8 +460,9 @@ export class PointCloud {
 
     // 1. la disparition en cours se poursuit, figée dans son état (réglages, position, rotation)
     if (this.leaving) this.#advance(this.leaving, dt)
-    // 2. scène vide : l'image demandée apparaît dès qu'elle est prête
-    if (!this.leaving && !this.current && this.wanted && this.targets.has(this.wanted.key)) this.#start()
+    // 2. scène (presque) vide : l'image demandée apparaît dès qu'elle est prête
+    const sceneFree = !this.leaving || this.leaving.reveal < HANDOVER
+    if (sceneFree && !this.current && this.wanted && this.targets.has(this.wanted.key)) this.#start()
 
     // 3. l'image affichée suit ses réglages (modifications du panneau), sa position et la souris
     const layer = this.current
