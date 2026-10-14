@@ -6,7 +6,7 @@ import { PROFILES, PROFILE_LABELS, ProfileStore, profileDefaults } from './webgl
  * celui de la section affichée. Modifications mémorisées dans ce navigateur.
  */
 
-const STORAGE_KEY = 'splat-settings-v21'
+const STORAGE_KEY = 'splat-settings-v22'
 
 const SLIDERS = [
   { key: 'size', label: 'Taille des points', min: 0.2, max: 2.5, step: 0.01 },
