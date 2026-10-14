@@ -79,7 +79,6 @@ app.innerHTML = `
       </h1>
       <p class="hero__intro words" data-words>${esc(tr(site.intro))}</p>
     </div>
-    <p class="hero__status"><span class="hero__dot" aria-hidden="true"></span><span data-t="available">${esc(tr(ui.available))}</span></p>
     <span class="hero__scroll" aria-hidden="true" data-t="scroll">${esc(tr(ui.scroll))}</span>
   </section>
 

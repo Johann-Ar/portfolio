@@ -39,7 +39,6 @@ export const ui = {
   about: L('À propos', 'About'),
   contact: L('Contact', 'Contact'),
   scroll: L('Défiler', 'Scroll'),
-  available: L('Disponible pour un stage', 'Open to internships'),
   skip: L('Aller au contenu', 'Skip to content'),
   open: L('Voir', 'View'),
   copied: L('Adresse copiée', 'Address copied'),

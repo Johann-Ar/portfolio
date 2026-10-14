@@ -368,8 +368,7 @@ body {
   padding: 0 var(--edge) 13vh;
 }
 /* le nom, la phrase d'accroche et les repères s'effacent quand « Projets choisis » arrive (--intro-fade) */
-.hero__content,
-.hero__status {
+.hero__content {
   opacity: calc(1 - var(--intro-fade, 0));
   filter: blur(calc(var(--intro-fade, 0) * 6px));
 }
@@ -390,30 +389,6 @@ body {
   line-height: 1.35;
   color: var(--fg);
   text-shadow: 0 0 18px rgb(0 0 0 / 0.6);
-}
-.hero__status {
-  position: absolute;
-  right: var(--edge);
-  bottom: 26px;
-  display: flex;
-  align-items: center;
-  gap: 0.6em;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--fg);
-}
-.hero__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #98ddbe;
-  box-shadow: 0 0 10px #98ddbe;
-  animation: pulse 2.4s ease-in-out infinite;
-}
-@keyframes pulse {
-  50% { opacity: 0.35; }
 }
 .hero__scroll {
   /* s'efface avec le texte d'accueil, un peu plus tôt (barre comprise, via ::after) */
@@ -447,13 +422,6 @@ body {
 @media (max-width: 768px) {
   .hero {
     padding-bottom: 16vh;
-  }
-  .hero__scroll {
-    display: none; /* le statut occupe le bas de l'écran */
-  }
-  .hero__status {
-    left: var(--edge);
-    right: auto;
   }
 }
 
