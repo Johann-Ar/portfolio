@@ -28,6 +28,7 @@ uniform float uDepthScale;
 uniform float uPush;
 uniform float uBreath;
 uniform float uContrast; // contraste de l'image
+uniform float uBrightness; // luminosité des points
 uniform float uCamZ;
 uniform float uCurve;     // courbure : > 0 concave, < 0 sphérique
 uniform vec2 uImgHalf;    // demi-dimensions de l'image affichée (boule des images de projet)
@@ -196,6 +197,9 @@ void main() {
 
   vec3 rgb = mix(mix(uColor, col.rgb, uColorMix), blue, uBlueMix);
   float alpha = mix(mix(mono, col.a, uColorMix), col.a, uBlueMix);
+  // luminosité : éclaircit les points (en monochrome, la présence des points gris augmente aussi)
+  rgb = min(rgb * uBrightness, vec3(1.0));
+  alpha = min(alpha * mix(1.0, uBrightness, 1.0 - uColorMix - uBlueMix), 1.0);
 
   // vignettage de l'image : appliqué aux points de l'image, mais calé sur l'écran (pas sur le format de l'image)
   if (uImgVignette > 0.001) {

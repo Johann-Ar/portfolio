@@ -52,6 +52,7 @@ const SETTING_UNIFORMS = {
   glass: 'uGlass',
   reflect: 'uReflect',
   contrast: 'uContrast',
+  brightness: 'uBrightness',
   veilBlack: 'uVeilBlack',
   anim: 'uAnim',
   animSpeed: 'uAnimSpeed',

@@ -27,7 +27,7 @@
 }
 
 :root {
-  --bg: #050407;
+  --bg: #000;
   --fg: #f5f4f8;
   --muted: rgb(245 244 248 / 0.55);
   --line: rgb(245 244 248 / 0.16);
@@ -36,13 +36,7 @@
   --tile-fg: #08070b;
   --media-bg: #16151b;
   --blend: normal;
-  --backdrop:
-    radial-gradient(ellipse 70% 60% at 12% 18%, rgb(255 152 229 / 0.16), transparent 72%),
-    radial-gradient(ellipse 65% 60% at 88% 14%, rgb(178 163 233 / 0.16), transparent 72%),
-    radial-gradient(ellipse 70% 60% at 84% 86%, rgb(152 221 190 / 0.16), transparent 72%),
-    radial-gradient(ellipse 65% 60% at 14% 88%, rgb(247 153 171 / 0.16), transparent 72%),
-    radial-gradient(ellipse 55% 50% at 50% 50%, rgb(178 163 233 / 0.16), transparent 75%),
-    #050407;
+  --backdrop: #000; /* fond noir simple (plus de halos colorés) */
   color-scheme: dark;
 }
 

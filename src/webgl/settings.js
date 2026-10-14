@@ -12,6 +12,7 @@ export const DEFAULT_SETTINGS = {
   glass: 0, // effet verre (bille, reflet, bord lumineux)
   reflect: 0, // intensité des couleurs du fond reflétées
   contrast: 1, // contraste de l'image affichée
+  brightness: 1, // luminosité des points
   veil: 0.4, // calque aux couleurs du fond par-dessus l'accueil et le contact
   veilBlack: 0, // calque « points » : 1 = pas de couleur sur les zones noires
   veilMode: 'over', // placement du calque : 'front' devant tout, 'over' sur l'image, 'behind' derrière, 'points' seulement les points
@@ -95,12 +96,12 @@ export const PROFILES = {
     push: -3,
     curve: 0.01,
     opacity: 0.64,
-    contrast: 1.07,
-    veil: 0.2,
+    contrast: 1.49,
+    veil: 0.23,
     veilMode: 'points',
     veilBlack: 1,
-    vignette: 0,
-    imgVignette: 0,
+    vignette: 0.96,
+    imgVignette: 0.49,
     anim: 0.69,
     animSpeed: 1.5,
     smokeHover: 1.25,
