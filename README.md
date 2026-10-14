@@ -40,7 +40,8 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
 
 ## Mode développement
 
-Les outils de réglage ne sont pas chargés pour les visiteurs. Ajouter **`?dev`** à l'adresse (mémorisé dans le
+Le panneau de réglages s'ouvre avec **P** (chargé à la demande, ou d'emblée si des réglages sont enregistrés
+dans le navigateur). Ajouter **`?dev`** à l'adresse (mémorisé dans le
 navigateur, `?dev=0` pour en sortir ; toujours actif avec `npm run dev`) donne accès au panneau de réglages (**P**),
 aux touches **Espace** (mono / couleur / bleu), **B** (ancien rendu de l'accueil) et **V** (volumétrie SHARP),
 et à l'élément 3D en verre. Les fichiers SHARP (`splats/`, ≈ 80 Mo) ne sont pas publiés : ils ne sont servis

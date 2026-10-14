@@ -74,8 +74,8 @@ app.innerHTML = `
   <section class="hero" id="top" data-cloud="hero">
     <div class="hero__content">
       <h1 class="hero__name">
-        <span class="u-visually-hidden">${esc(site.name)}, <span data-t="role">${esc(tr(ui.role))}</span></span>
-        <span class="hero__line" aria-hidden="true">${[...site.name].map((c, i) => (c === ' ' ? ' ' : `<span class="ch" style="--i:${i}">${esc(c)}</span>`)).join('')}</span>
+        <span class="u-visually-hidden"><span translate="no">${esc(site.name)}</span>, <span data-t="role">${esc(tr(ui.role))}</span></span>
+        <span class="hero__line notranslate" translate="no" aria-hidden="true">${[...site.name].map((c, i) => (c === ' ' ? ' ' : `<span class="ch" style="--i:${i}">${esc(c)}</span>`)).join('')}</span>
       </h1>
       <p class="hero__intro words" data-words>${esc(tr(site.intro))}</p>
     </div>
@@ -94,7 +94,7 @@ app.innerHTML = `
           <li class="reveal" style="--i:${i}">
             <a class="work-link" href="#/${p.slug}" data-slug="${p.slug}">
               <span class="work-link__num" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>
-              <b>${esc(p.title)}</b>
+              <b translate="no">${esc(p.title)}</b>
               <span class="work-link__meta">${esc(metaText(p))}</span>
             </a>
           </li>`,
@@ -126,7 +126,7 @@ app.innerHTML = `
 
   <section class="contact" id="contact" data-cloud="contact" data-cloud-opacity="0.6" aria-labelledby="contact-title">
     <h2 class="section-title section-title--center reveal" id="contact-title">Contact</h2>
-    <a class="contact__mail reveal" href="mailto:${esc(site.email)}"><span>${esc(site.email)}</span></a>
+    <a class="contact__mail reveal notranslate" translate="no" href="mailto:${esc(site.email)}"><span>${esc(site.email)}</span></a>
     <span class="contact__copied" role="status" aria-live="polite"></span>
     <a class="contact__phone reveal" href="tel:${esc(site.phone.replace(/\s/g, ''))}"><span>${esc(site.phone)}</span></a>
     <ul class="socials reveal">
@@ -281,7 +281,7 @@ async function initCloud() {
   // logo en volume possible via l'option overlay d'imageTarget (voir scripts/logo-volume.py)
   cloud.register('hero', imageTarget(portrait, { ...far, focusX: 0.6 }))
   // mode développement, touche B : ancienne version (points répartis selon la lumière), toujours plein écran
-  if (DEV) cloud.register('hero-old', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6 }))
+  cloud.register('hero-old', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6 }))
   // contact : Thomas Gainsborough, « View near King's Bromley-on-Trent » (domaine public)
   cloud.register('contact', imageTarget(`${BASE}media/site/view-near.webp`, far))
   // projets : les couvertures du portfolio (imprimées sur fond blanc)
@@ -340,13 +340,30 @@ function setHeroOld(v) {
   updateCloud()
   panel.sync()
 }
-// réglages par profil ; en mode développement, le panneau P (éditable, mémorisé) prend le relais
+// réglages par profil (valeurs par défaut) ; le panneau P (éditable, mémorisé) prend le relais quand il est chargé :
+// touche P à tout moment, d'emblée en mode développement ou si des réglages ont été enregistrés dans ce navigateur
 let panel = new ProfileStore()
-const panelReady = DEV
-  ? import('./panel.js').then(({ SplatPanel }) => {
-      panel = new SplatPanel({ onMode: setColorMode, getHeroOld: () => heroOld, setHeroOld, getVolume: () => volume, setVolume })
-    })
-  : Promise.resolve()
+let panelReady = Promise.resolve()
+let panelLoaded = false
+function loadPanel() {
+  if (panelLoaded) return panelReady
+  panelLoaded = true
+  panelReady = import('./panel.js').then(({ SplatPanel }) => {
+    const prev = panel
+    panel = new SplatPanel({ onMode: setColorMode, getHeroOld: () => heroOld, setHeroOld, getVolume: () => volume, setVolume })
+    panel.setProfile(prev.profile)
+    panel.setPage(prev.pageProfile)
+  })
+  return panelReady
+}
+const hasSavedSettings = (() => {
+  try {
+    return Object.keys(localStorage).some((k) => k.startsWith('splat-settings'))
+  } catch {
+    return false
+  }
+})()
+if (DEV || hasSavedSettings) loadPanel()
 
 function updateCloud() {
   const vh = window.innerHeight
@@ -526,12 +543,13 @@ stage.addEventListener('pointercancel', endDrag)
 
 /* Espace : monochrome / couleurs de l'image. B : ancienne version du splat de l'accueil */
 window.addEventListener('keydown', (e) => {
-  if (!DEV || e.repeat || !cloud || caseView.isOpen || e.metaKey || e.ctrlKey || e.altKey) return
+  if (e.repeat || !cloud || caseView.isOpen || e.metaKey || e.ctrlKey || e.altKey) return
   const inPanel = e.target.closest?.('.splat-panel')
   if ((e.key === 'p' || e.key === 'P') && (inPanel || !e.target.closest?.('input, textarea, select, [contenteditable]'))) {
-    panel.toggle()
+    loadPanel().then(() => panel.toggle()) // le panneau se charge à la première demande
     return
   }
+  if (!panelLoaded) return // les autres touches de réglage ne servent qu'avec le panneau
   if (e.target.closest?.('input, textarea, select, button, a, [contenteditable]')) return
   if (e.code === 'Space') {
     e.preventDefault()

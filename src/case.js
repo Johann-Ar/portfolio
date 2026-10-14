@@ -105,7 +105,7 @@ export class CaseView {
       <div class="case__spacer"></div>
       <div class="case__wrapper">
         <div class="case__title-wrapper">
-          <h1 id="case-title">${esc(project.title)}</h1>
+          <h1 id="case-title" translate="no">${esc(project.title)}</h1>
           <p>${esc(tr(project.text))}</p>
           <div class="case__infos">
             ${project.infos
@@ -126,7 +126,7 @@ export class CaseView {
         </div>
         <a class="case__next" href="#/${next.slug}">
           <small>${esc(tr(ui.next))}</small>
-          <strong>${esc(next.title)}</strong>
+          <strong translate="no">${esc(next.title)}</strong>
           <span class="case__pull" aria-hidden="true"><span></span></span>
           <em>${esc(tr(ui.keepScrolling))}</em>
         </a>

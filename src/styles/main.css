@@ -12,7 +12,6 @@
   --display-track: -0.02em;
   --nav-size: 0.95rem;
   /* décalage RVB de la typo identitaire (rouge à gauche, bleu à droite) */
-  --rgb-shift: -0.012em 0 rgb(255 0 60 / 0.55), 0.012em 0 rgb(0 150 255 / 0.55);
   --font-sans: 'Figtree', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
@@ -145,7 +144,6 @@ ul {
   font-optical-sizing: auto;
   line-height: 0.9;
   font-variant-numeric: tabular-nums;
-  text-shadow: var(--rgb-shift);
 }
 .loader__bar {
   margin-top: 1.2rem;
@@ -383,9 +381,7 @@ body {
   font-size: clamp(3.4rem, 10.5vw, 11rem);
   line-height: 0.86;
   letter-spacing: -0.035em;
-  text-shadow:
-    var(--rgb-shift),
-    0 0 40px rgb(0 0 0 / 0.35);
+  text-shadow: 0 0 40px rgb(0 0 0 / 0.35);
 }
 .hero__intro {
   max-width: 34ch;
@@ -1262,14 +1258,12 @@ html.case-open {
   font-size: 1.4rem;
 }
 
-/* très fin décalage RVB sur la typo identitaire (rouge à gauche, bleu à droite) */
+/* titres : légère ombre pour rester lisibles sur les images */
 .section-title,
 .skills__row,
 .case__title-wrapper h1,
 .case__next strong {
-  text-shadow:
-    var(--rgb-shift),
-    0 0 22px rgb(0 0 0 / 0.45); /* lisibilité sur les images */
+  text-shadow: 0 0 22px rgb(0 0 0 / 0.45);
 }
 
 /* ---------- Bascule de langue FR / EN ---------- */
