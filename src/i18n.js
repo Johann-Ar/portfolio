@@ -42,6 +42,7 @@ export const ui = {
   available: L('Disponible pour un stage', 'Open to internships'),
   skip: L('Aller au contenu', 'Skip to content'),
   open: L('Voir', 'View'),
+  copied: L('Adresse copiée', 'Address copied'),
   workTitle: L('Projets choisis', 'Selected work'),
   skills: L('Compétences', 'Skills'),
   langSwitch: L('Read in English', 'Lire en français'),

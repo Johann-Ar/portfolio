@@ -131,10 +131,12 @@ export class CaseView {
           <em>${esc(tr(ui.keepScrolling))}</em>
         </a>
       </div>
-      <div class="case__close"><button type="button" data-close>${esc(tr(ui.close))}</button></div>`
+      <div class="case__close"><button type="button" data-close>${esc(tr(ui.close))}</button></div>
+      <div class="case__progress" aria-hidden="true"><span></span></div>`
 
     this.wrapper = this.el.querySelector('.case__wrapper')
     this.spacer = this.el.querySelector('.case__spacer')
+    this.progressBar = this.el.querySelector('.case__progress span')
     this.current = 0
     this.#setPull(0)
   }
@@ -151,14 +153,25 @@ export class CaseView {
     this.spacer.style.height = `${travel + window.innerHeight}px`
   }
 
+  /** Barre de progression de la lecture du projet (0 → 1). */
+  #progress(p) {
+    if (this.progressBar) this.progressBar.style.transform = `scaleX(${Math.min(Math.max(p, 0), 1).toFixed(4)})`
+  }
+
   #onScroll() {
-    if (this.mobile.matches || this.animating) return
+    if (this.mobile.matches) {
+      const max = this.el.scrollHeight - this.el.clientHeight
+      this.#progress(max > 0 ? this.el.scrollTop / max : 0)
+      return
+    }
+    if (this.animating) return
     this.animating = true
     const step = () => {
       const target = Math.min(this.el.scrollTop, this.travel || 0)
       this.current += (target - this.current) * 0.12
       if (Math.abs(target - this.current) < 0.3) this.current = target
       this.wrapper.style.transform = `translate3d(${-this.current.toFixed(1)}px,0,0)`
+      this.#progress(this.travel ? this.current / this.travel : 0)
       if (this.current !== target && this.isOpen) requestAnimationFrame(step)
       else this.animating = false
     }

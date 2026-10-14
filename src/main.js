@@ -73,7 +73,10 @@ const app = document.getElementById('app')
 app.innerHTML = `
   <section class="hero" id="top" data-cloud="hero">
     <div class="hero__content">
-      <h1 class="hero__name">${esc(site.name)}<span class="u-visually-hidden">, <span data-t="role">${esc(tr(ui.role))}</span></span></h1>
+      <h1 class="hero__name">
+        <span class="u-visually-hidden">${esc(site.name)}, <span data-t="role">${esc(tr(ui.role))}</span></span>
+        <span class="hero__line" aria-hidden="true">${[...site.name].map((c, i) => (c === ' ' ? ' ' : `<span class="ch" style="--i:${i}">${esc(c)}</span>`)).join('')}</span>
+      </h1>
       <p class="hero__intro words" data-words>${esc(tr(site.intro))}</p>
     </div>
     <p class="hero__status"><span class="hero__dot" aria-hidden="true"></span><span data-t="available">${esc(tr(ui.available))}</span></p>
@@ -124,6 +127,7 @@ app.innerHTML = `
   <section class="contact" id="contact" data-cloud="contact" data-cloud-opacity="0.6" aria-labelledby="contact-title">
     <h2 class="section-title section-title--center reveal" id="contact-title">Contact</h2>
     <a class="contact__mail reveal" href="mailto:${esc(site.email)}"><span>${esc(site.email)}</span></a>
+    <span class="contact__copied" role="status" aria-live="polite"></span>
     <a class="contact__phone reveal" href="tel:${esc(site.phone.replace(/\s/g, ''))}"><span>${esc(site.phone)}</span></a>
     <ul class="socials reveal">
       ${site.socials
@@ -382,6 +386,54 @@ function updateCloud() {
     offset: [inWork && !isSmall() ? 0.17 : 0, smallWork ? 0.2 : 0],
   })
   cloud.setScroll(section.id === 'top' ? heroProgress * 0.4 : 0)
+}
+
+/* Contact : un clic sur l'adresse la copie aussi (utile sans logiciel de messagerie) */
+const mailLink = document.querySelector('.contact__mail')
+const copiedNote = document.querySelector('.contact__copied')
+let copiedTimer
+mailLink.addEventListener('click', () => {
+  navigator.clipboard
+    ?.writeText(site.email)
+    .then(() => {
+      copiedNote.textContent = tr(ui.copied)
+      copiedNote.classList.add('is-on')
+      clearTimeout(copiedTimer)
+      copiedTimer = setTimeout(() => copiedNote.classList.remove('is-on'), 2000)
+    })
+    .catch(() => {})
+})
+
+/* Souris : une étiquette « Voir » accompagne le curseur sur les projets */
+if (!isTouch && !reducedMotion) {
+  const label = document.createElement('div')
+  label.className = 'cursor-label'
+  label.setAttribute('aria-hidden', 'true')
+  label.dataset.t = 'open'
+  label.textContent = tr(ui.open)
+  document.body.append(label)
+  const c = { x: 0, y: 0, tx: 0, ty: 0, on: false, running: false }
+  const tick = () => {
+    c.x += (c.tx - c.x) * 0.22
+    c.y += (c.ty - c.y) * 0.22
+    label.style.transform = `translate3d(${c.x.toFixed(1)}px,${c.y.toFixed(1)}px,0)`
+    if (c.on || Math.abs(c.tx - c.x) > 0.5) requestAnimationFrame(tick)
+    else c.running = false
+  }
+  window.addEventListener('pointermove', (e) => {
+    c.tx = e.clientX
+    c.ty = e.clientY
+    const on = !!e.target.closest?.('.work-link')
+    if (on !== c.on) {
+      c.on = on
+      label.classList.toggle('is-on', on)
+      if (on) (c.x = c.tx), (c.y = c.ty)
+    }
+    if (c.on && !c.running) {
+      c.running = true
+      requestAnimationFrame(tick)
+    }
+  }, { passive: true })
 }
 
 /* Le texte d'accueil fond quand le titre « Projets choisis » apparaît */
