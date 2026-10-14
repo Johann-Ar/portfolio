@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS = {
   reflect: 0, // intensité des couleurs du fond reflétées
   contrast: 1, // contraste de l'image affichée
   brightness: 1, // luminosité des points
+  saturation: 1, // intensité des couleurs (mode couleur / bleu)
   veil: 0.4, // calque aux couleurs du fond par-dessus l'accueil et le contact
   veilBlack: 0, // calque « points » : 1 = pas de couleur sur les zones noires
   veilMode: 'over', // placement du calque : 'front' devant tout, 'over' sur l'image, 'behind' derrière, 'points' seulement les points
@@ -25,12 +26,6 @@ export const DEFAULT_SETTINGS = {
   animSpeed: 1, // vitesse de l'animation
   rgb: 0, // effet « pixels RVB » (0 à 1)
   rgbGlow: 0.5, // halo des sous-pixels
-  glassShape: 'none', // élément 3D de l'accueil : 'none' (caché, logo intégré à l'image), 'logo' ou 'prisms'
-  glassIor: 0.13, // intensité de la réfraction
-  glassRough: 0.2, // étalement de la dispersion
-  glassBack: 0.33, // influence des faces arrière
-  glassSat: 1.17, // saturation des couleurs réfractées
-  glassSpeed: 1, // vitesse de rotation
 }
 
 /**
@@ -67,17 +62,17 @@ export const PROFILES = {
   project: {
     mode: 1,
     size: 1.27,
-    relief: 0.82,
-    push: 0,
-    curve: 0,
+    relief: 0,
+    push: -9,
+    curve: -1.5,
     opacity: 1.2,
     contrast: 0.53,
     veil: 0.09,
     veilMode: 'points',
     vignette: 1,
     imgVignette: 0,
-    anim: 0.8,
-    animSpeed: 1,
+    anim: 1.91,
+    animSpeed: 2.2,
     smokeHover: 1.5,
     smokeWarp: 0.3,
     rgb: 0,
@@ -87,7 +82,7 @@ export const PROFILES = {
     mouseRadius: 5.1,
     mouseForce: 1.05,
     breath: 0,
-    parallax: 0.55,
+    parallax: 0.15,
     shape: 'round',
   },
   contact: {

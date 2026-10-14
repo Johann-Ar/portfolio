@@ -43,7 +43,6 @@ const bold = (str) => esc(str).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
 const root = document.documentElement
 const POINTS_COLOR = '#ffffff'
 let cloud = null
-let logo = null
 
 /* ------------------------------------------------------------------
    Rendu
@@ -55,7 +54,7 @@ skills.forEach((s, i) => rows[i % rows.length].push(s))
 // une ligne = son texte répété deux fois (boucle sans raccord) ; la copie est ignorée par les lecteurs d'écran
 const rowText = (row) => row.map((w) => `${tr(w)}, `).join('')
 const rowHtml = (row) => `<span>${esc(rowText(row))}</span><span aria-hidden="true">${esc(rowText(row))}</span>`
-const metaText = (p) => `${p.year} — ${tr(p.tag)}`
+const metaText = (p) => `// ${tr(p.tag)}`
 const timelineCol = (col) => `
           <h3>${esc(tr(col.title))}</h3>
           <ul>
@@ -82,7 +81,7 @@ app.innerHTML = `
     <span class="hero__scroll" aria-hidden="true" data-t="scroll">${esc(tr(ui.scroll))}</span>
   </section>
 
-  <section class="work" id="projets" data-cloud="project" aria-labelledby="work-title" style="--n:${projects.length}">
+  <section class="work" id="projets" data-cloud="project" aria-labelledby="work-title">
     <div class="work__pin">
     <div class="work__stage" aria-hidden="true"></div>
     <div class="work__inner">
@@ -93,7 +92,6 @@ app.innerHTML = `
             (p, i) => `
           <li class="reveal" style="--i:${i}">
             <a class="work-link" href="#/${p.slug}" data-slug="${p.slug}">
-              <span class="work-link__num" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>
               <b translate="no">${esc(p.title)}</b>
               <span class="work-link__meta">${esc(metaText(p))}</span>
             </a>
@@ -267,14 +265,6 @@ async function initCloud() {
     root.classList.toggle('show-veil', !!profile)
   }
   cloud.onContextLost = () => root.classList.add('no-webgl')
-  // mode développement : élément 3D en verre au centre de l'accueil (technique de la référence, forme de Johann)
-  if (DEV)
-    import('./webgl/GlassElement.js')
-      .then(({ GlassElement }) => {
-        logo = new GlassElement(cloud)
-        updateCloud()
-      })
-      .catch((err) => console.warn('Élément 3D indisponible', err))
   // accueil : la photo remplit l'écran et déborde du cadre
   const portrait = `${BASE}media/site/portrait.webp`
   // accueil et contact : images reculées, bord à bord, profondeur inversée (clair = loin, foncé = proche)
@@ -375,7 +365,6 @@ function updateCloud() {
   for (const s of sections) {
     if (s.getBoundingClientRect().top <= mid) section = s
   }
-  logo?.setProgress(Math.min(heroProgress * 1.8, 1)) // le logo sort avant que le texte ne le croise
   const nowInWork = section === workSection
   if (nowInWork !== inWork) {
     inWork = nowInWork
@@ -479,17 +468,15 @@ links.forEach((l) => {
   l.addEventListener('focus', () => select(l.dataset.slug))
 })
 
-/* Projets : la section reste bloquée au centre de l'écran ; le défilement sélectionne les projets tour à tour */
-let workIndex = -1
-function updateWork() {
-  const r = workSection.getBoundingClientRect()
-  const travel = r.height - window.innerHeight
-  if (travel <= 0 || r.top > 0 || r.bottom < window.innerHeight) return
-  const p = Math.min(Math.max(-r.top / travel, 0), 0.9999)
-  const i = Math.floor(p * projects.length)
-  if (i === workIndex) return
-  workIndex = i
-  select(projects[i].slug)
+// tactile : le projet au centre de l'écran s'affiche
+if (isTouch) {
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) if (e.isIntersecting) select(e.target.dataset.slug)
+    },
+    { rootMargin: '-45% 0px -45% 0px' },
+  )
+  links.forEach((l) => io.observe(l))
 }
 
 /* Le nuage du projet se manipule : glisser pour le faire tourner (rotation limitée, sans changer de projet) */
@@ -537,7 +524,6 @@ let ticking = false
 window.addEventListener(
   'scroll',
   () => {
-    updateWork() // sélection du projet : immédiate, sans attendre l'image suivante
     if (ticking) return
     ticking = true
     requestAnimationFrame(() => {

@@ -14,10 +14,7 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
   (taille des points, relief, distance, courbure, opacité, verre, reflets du fond, souris, respiration, parallaxe — mémorisés dans le navigateur) ;
 - fumée (panneau P) : les points restent fixes, l'image se déforme en volutes de fumée dessous (fbm + domain warping),
   plus fort sous la souris ; intensité, vitesse et fumée au survol réglables ;
-- élément 3D en verre caché par défaut (panneau P : Caché / Logo / Prismes) ; un logo en volume reste possible
-  via l'option `overlay` d'`imageTarget` (`scripts/logo-volume.py`) ;
 - pixels RVB (panneau P) : chaque point devient un pixel d'écran OLED (PenTile, losanges) vu au microscope, halo réglable ;
-- effet verre : chaque point est une bille qui reflète les couleurs du fond situées derrière elle ;
 - accueil et contact : images reculées, bord à bord, profondeur inversée (clair = loin), courbure concave réglable ;
 - accueil : photo plein écran qui déborde du cadre ; Compétences et À propos : aucune image ; section Projets : couverture du projet survolé,
   rotation limitée au glisser ;
@@ -27,11 +24,6 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
 - accueil et contact : images passées en niveaux de gris hors du site (`scripts/grayscale.py` : sources et volumes SHARP) ;
 - raccourcis (Espace, B, V, P) actifs mais non affichés ;
 - contact : splat du tableau de Thomas Gainsborough, *View near King's Bromley-on-Trent* ;
-- accueil : élément 3D en verre au centre, même technique que celui de dorianlods.com, réécrite pour Three.js
-  (`src/webgl/GlassElement.js`) : la scène derrière le verre et les normales des faces arrière sont rendues
-  dans deux textures, puis le verre réfracte avec une dispersion sur 6 longueurs d'onde × 16 échantillons
-  (IOR 1.15 / 1.78 / 1.57 / 1.39 / 1.24 / 1.34), reflets de studio et Fresnel. Forme « Logo » (vague + anneau)
-  ou « Prismes » (7 barres en étoile, comme la référence), au choix dans le panneau P ;
 - mobile et tactile : nuage atténué et décalé sous la liste des projets, fiche projet en colonne (aussi sur tablette
   en portrait), pas de « souris fantôme » après un toucher, raccourcis clavier masqués ;
 - français / anglais : bouton FR / EN en haut à droite (seul élément de la barre du haut) (langue du navigateur par défaut, choix mémorisé,
@@ -43,8 +35,7 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
 Le panneau de réglages s'ouvre avec **P** (chargé à la demande, ou d'emblée si des réglages sont enregistrés
 dans le navigateur). Ajouter **`?dev`** à l'adresse (mémorisé dans le
 navigateur, `?dev=0` pour en sortir ; toujours actif avec `npm run dev`) donne accès au panneau de réglages (**P**),
-aux touches **Espace** (mono / couleur / bleu), **B** (ancien rendu de l'accueil) et **V** (volumétrie SHARP),
-et à l'élément 3D en verre. Les fichiers SHARP (`splats/`, ≈ 80 Mo) ne sont pas publiés : ils ne sont servis
+aux touches **Espace** (mono / couleur / bleu), **B** (ancien rendu de l'accueil) et **V** (volumétrie SHARP). Les fichiers SHARP (`splats/`, ≈ 80 Mo) ne sont pas publiés : ils ne sont servis
 que par `npm run dev` et `npm run preview`.
 
 ## Lancer en local

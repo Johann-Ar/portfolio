@@ -6,7 +6,7 @@ import { PROFILES, PROFILE_LABELS, ProfileStore, profileDefaults } from './webgl
  * celui de la section affichée. Modifications mémorisées dans ce navigateur.
  */
 
-const STORAGE_KEY = 'splat-settings-v26'
+const STORAGE_KEY = 'splat-settings-v27'
 
 const SLIDERS = [
   { key: 'size', label: 'Taille des points', min: 0.2, max: 2.5, step: 0.01 },
@@ -16,6 +16,7 @@ const SLIDERS = [
   { key: 'opacity', label: 'Opacité', min: 0.1, max: 2, step: 0.01 },
   { key: 'contrast', label: 'Contraste', min: 0, max: 3, step: 0.01 },
   { key: 'brightness', label: 'Luminosité', min: 0, max: 3, step: 0.01 },
+  { key: 'saturation', label: 'Saturation (couleurs)', min: 0, max: 3, step: 0.01 },
   { key: 'veil', label: 'Calque couleurs (accueil, contact)', min: 0, max: 1, step: 0.01 },
   { key: 'veilBlack', label: 'Calque « points » : noirs sans couleur', min: 0, max: 1, step: 0.01 },
   { key: 'vignette', label: 'Vignettage (écran)', min: 0, max: 1, step: 0.01 },
@@ -26,13 +27,6 @@ const SLIDERS = [
   { key: 'smokeWarp', label: 'Fumée : déformation de l’image', min: 0, max: 1.5, step: 0.01 },
   { key: 'rgb', label: 'Pixels RVB (OLED)', min: 0, max: 1, step: 0.01 },
   { key: 'rgbGlow', label: 'Pixels RVB : halo', min: 0, max: 2, step: 0.01 },
-  { key: 'glass', label: 'Verre', min: 0, max: 3, step: 0.01 },
-  { key: 'reflect', label: 'Reflets du fond', min: 0, max: 4, step: 0.01 },
-  { key: 'glassIor', label: 'Verre 3D : réfraction', min: 0, max: 0.6, step: 0.005 },
-  { key: 'glassRough', label: 'Verre 3D : dispersion', min: 0, max: 1, step: 0.01 },
-  { key: 'glassBack', label: 'Verre 3D : faces arrière', min: 0, max: 1, step: 0.01 },
-  { key: 'glassSat', label: 'Verre 3D : saturation', min: 0, max: 2.5, step: 0.01 },
-  { key: 'glassSpeed', label: 'Verre 3D : rotation', min: 0, max: 5, step: 0.05 },
   { key: 'mouseRadius', label: 'Rayon souris', min: 0, max: 10, step: 0.1 },
   { key: 'mouseForce', label: 'Force souris', min: 0, max: 4, step: 0.05 },
   { key: 'breath', label: 'Respiration', min: 0, max: 6, step: 0.05 },
@@ -93,12 +87,6 @@ export class SplatPanel extends ProfileStore {
         <button type="button" data-volume="sharp" title="SHARP (Apple) · Spark · SPZ">SHARP</button>
       </div>
       <p class="splat-panel__status" data-status></p>
-      <span class="splat-panel__label">Élément 3D</span>
-      <div class="splat-panel__row splat-panel__modes" role="group" aria-label="Élément 3D">
-        <button type="button" data-shape="none">Caché</button>
-        <button type="button" data-shape="logo">Logo</button>
-        <button type="button" data-shape="prisms">Prismes (réf.)</button>
-      </div>
       <span class="splat-panel__label">Forme des points</span>
       <div class="splat-panel__row splat-panel__modes" role="group" aria-label="Forme des points">
         <button type="button" data-pshape="round">Rond</button>
@@ -145,13 +133,6 @@ export class SplatPanel extends ProfileStore {
       if (e.detail) e.target.closest('button')?.blur() // clic souris : pas de contour persistant
       const mode = e.target.closest('[data-mode]')
       if (mode) this.onMode(Number(mode.dataset.mode))
-      const shape = e.target.closest('[data-shape]')
-      if (shape) {
-        for (const p of Object.values(this.profiles)) p.glassShape = shape.dataset.shape // forme commune
-        save(this.profiles)
-        this.#apply('glassShape')
-        this.sync()
-      }
       const ps = e.target.closest('[data-pshape]')
       if (ps) {
         this.settings.shape = ps.dataset.pshape
@@ -211,7 +192,6 @@ export class SplatPanel extends ProfileStore {
     this.el.querySelector('[data-hero-old]').checked = this.getHeroOld()
     this.el.querySelectorAll('[data-pshape]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pshape === this.settings.shape)))
     this.el.querySelectorAll('[data-veil]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.veil === this.settings.veilMode)))
-    this.el.querySelectorAll('[data-shape]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.shape === this.settings.glassShape)))
     const vol = this.getVolume()
     this.el.querySelectorAll('[data-volume]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.volume === vol)))
   }

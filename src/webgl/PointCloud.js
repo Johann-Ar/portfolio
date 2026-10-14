@@ -35,7 +35,7 @@ import { DEFAULT_SETTINGS } from './settings.js'
 
 const APPEAR = 1.7 // durée de l'apparition (s)
 const DISAPPEAR = 1.1 // durée de la disparition (s)
-const DELAY_SPREAD = 0.5 // étalement de la vague (part du temps pendant laquelle les points partent l'un après l'autre)
+const DELAY_SPREAD = 0.15 // léger décalage entre les points : tous bougent ensemble, sans points restés figés
 const HANDOVER = 0.12 // l'image suivante commence quand la précédente est presque éteinte (pas de temps mort)
 const ROT_LIMIT = { x: 0.22, y: 0.4 } // rotation manuelle volontairement limitée
 
@@ -53,6 +53,7 @@ const SETTING_UNIFORMS = {
   reflect: 'uReflect',
   contrast: 'uContrast',
   brightness: 'uBrightness',
+  saturation: 'uSaturation',
   veilBlack: 'uVeilBlack',
   anim: 'uAnim',
   animSpeed: 'uAnimSpeed',
@@ -388,6 +389,19 @@ export class PointCloud {
     if (this.current === layer) this.current = null
   }
 
+  /** Rapport de taille apparente à la profondeur de l'image (recul de l'image + réglage « Distance »). */
+  #depthScale(layer) {
+    const off = (layer.data.off[0] || 0) + layer.uniforms.uPush.value
+    return Math.max(0.05, (CAM_Z + off) / CAM_Z)
+  }
+
+  /** Décalage de l'image (fraction de l'écran) converti à sa profondeur : elle reste au même endroit à l'écran, quelle que soit la distance. */
+  #offsetAt(layer) {
+    const { w, h } = this.viewSize
+    const k = this.#depthScale(layer)
+    return [layer.opts.offset[0] * w * k, layer.opts.offset[1] * h * k]
+  }
+
   /** Fait apparaître l'image demandée (scène vide) avec ses propres réglages, appliqués d'un coup. */
   #start(instant = false) {
     const w = this.wanted
@@ -401,8 +415,8 @@ export class PointCloud {
     layer.applySettings(this.getSettings(w.profile), this.isSmall, 1)
     layer.scroll = layer.scrollTarget
     layer.uniforms.uScroll.value = layer.scroll
-    const { w: vw, h: vh } = this.viewSize
-    layer.points.position.set(w.offset[0] * vw, w.offset[1] * vh, 0)
+    const [ox, oy] = this.#offsetAt(layer)
+    layer.points.position.set(ox, oy, 0)
     layer.points.rotation.set(0, 0, 0)
     this.userRot.x = this.userRot.y = this.userRot.vx = this.userRot.vy = 0
     layer.reveal = instant || this.reducedMotion ? 1 : 0
@@ -495,9 +509,12 @@ export class PointCloud {
       layer.scroll += (layer.scrollTarget - layer.scroll) * damp(dt)
       layer.uniforms.uScroll.value = layer.scroll
       const p = layer.points.position
-      p.x += (layer.opts.offset[0] * w - p.x) * damp(dt, 0.02)
-      p.y += (layer.opts.offset[1] * h - p.y) * damp(dt, 0.02)
-      layer.uniforms.uMouse.value.set((this.mouse.x * w) / 2 - p.x, (this.mouse.y * h) / 2 - p.y, 0)
+      const [ox, oy] = this.#offsetAt(layer)
+      p.x += (ox - p.x) * damp(dt, 0.02)
+      p.y += (oy - p.y) * damp(dt, 0.02)
+      // souris ramenée dans le repère de l'image : le shader la projette ensuite à la profondeur de l'image
+      const k = this.#depthScale(layer)
+      layer.uniforms.uMouse.value.set((this.mouse.x * w) / 2 - p.x / k, (this.mouse.y * h) / 2 - p.y / k, 0)
 
       if (!this.reducedMotion) {
         this.parallax.lerp(this.parallaxTarget, damp(dt, 0.08))

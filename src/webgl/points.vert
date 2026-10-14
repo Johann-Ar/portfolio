@@ -29,6 +29,7 @@ uniform float uPush;
 uniform float uBreath;
 uniform float uContrast; // contraste de l'image
 uniform float uBrightness; // luminosité des points
+uniform float uSaturation; // intensité des couleurs
 uniform float uCamZ;
 uniform float uCurve;     // courbure : > 0 concave, < 0 sphérique
 uniform vec2 uImgHalf;    // demi-dimensions de l'image affichée (boule des images de projet)
@@ -131,15 +132,17 @@ void main() {
   }
 
   // 2. du nuage dispersé à l'image (sans mouvement réduit : les points restent en place et s'allument)
-  // nuage de départ : autour de l'image, un peu en avant (les points arrivent vers l'écran puis s'y posent)
-  vec3 scatter = img + (aRand.yzw - 0.5) * vec3(26.0, 18.0, 30.0) + vec3(0.0, 0.0, 6.0);
+  // état dispersé : les points s'étalent dans la profondeur (derrière l'image), à peine écartés sur le côté ;
+  // jamais vers la caméra (ils y paraîtraient énormes)
+  vec3 scatter = img + vec3((aRand.y - 0.5) * 5.0, (aRand.z - 0.5) * 4.0, -aRand.w * 55.0);
   vec3 pos = mix(img, mix(scatter, img, m), uMotion);
-  pos += (aRand.zwy - 0.5) * vec3(4.0, 4.0, 6.0) * burst;
-  // taille : minuscules au départ, les points ne grossissent qu'en arrivant (et rapetissent d'abord en disparaissant)
-  float grow = m * m * (3.0 - 2.0 * m);
-  float cell = aPos.w * mix(0.04, 1.0, grow * grow);
+  pos.xy += (aRand.zw - 0.5) * 2.0 * burst;
+  // taille : dès que la transition commence, tous les points rapetissent (et ne regrossissent qu'image formée)
+  float cell = aPos.w * mix(0.04, 1.0, uReveal * uReveal * uReveal);
 
   vec4 col = vec4(clamp((aCol.rgb - 0.5) * uContrast + 0.5, 0.0, 1.0), aCol.a);
+  // saturation : couleurs plus franches (au-delà de 1) ou plus neutres
+  col.rgb = clamp(mix(vec3(dot(col.rgb, vec3(0.2126, 0.7152, 0.0722))), col.rgb, uSaturation), 0.0, 1.0);
   vec2 toneRaw = aTone;
   // fumée : les points restent fixes, l'image se déforme en volutes dessous ; plus forte sous la souris
   float kEarly = (uCamZ + off) / uCamZ;
