@@ -6,7 +6,7 @@ import { PROFILES, PROFILE_LABELS, profileDefaults } from './webgl/settings.js'
  * celui de la section affichée. Modifications mémorisées dans ce navigateur.
  */
 
-const STORAGE_KEY = 'splat-settings-v19'
+const STORAGE_KEY = 'splat-settings-v20'
 
 const SLIDERS = [
   { key: 'size', label: 'Taille des points', min: 0.2, max: 2.5, step: 0.01 },
@@ -61,23 +61,22 @@ const fmt = (v, step) => (step >= 1 ? String(v) : Number(v).toFixed(step < 0.1 ?
 export class SplatPanel {
   /**
    * @param {object} o
-   * @param {() => import('./webgl/PointCloud.js').PointCloud|null} o.getCloud
    * @param {(mode:number) => void} o.onMode      changement de mode couleur
    * @param {() => boolean} o.getHeroOld          rendu « ancien » de l'accueil (touche B)
    * @param {(v:boolean) => void} o.setHeroOld
    * @param {() => string} o.getVolume            'points' ou 'sharp'
    * @param {(v:string) => void} o.setVolume
    */
-  constructor({ getCloud, onMode, getHeroOld, setHeroOld, getVolume, setVolume }) {
+  constructor({ onMode, getHeroOld, setHeroOld, getVolume, setVolume }) {
     this.getVolume = getVolume
     this.setVolume = setVolume
-    this.getCloud = getCloud
     this.onMode = onMode
     this.getHeroOld = getHeroOld
     this.setHeroOld = setHeroOld
     this.profiles = load()
-    this.profile = 'hero'
+    this.profile = 'hero' // profil modifié par le panneau (section affichée)
     this.settings = this.profiles[this.profile]
+    this.pageProfile = 'other' // profil de l'image visible (habillage de la page)
 
     const el = document.createElement('aside')
     el.className = 'splat-panel'
@@ -136,7 +135,7 @@ export class SplatPanel {
       const key = e.target.dataset.key
       if (key) {
         this.settings[key] = Number(e.target.value)
-        this.#apply(key, true)
+        this.#apply(key)
         save(this.profiles)
       }
       if (e.target.matches('[data-hero-old]')) this.setHeroOld(e.target.checked)
@@ -177,17 +176,11 @@ export class SplatPanel {
     })
   }
 
-  #apply(key, immediate = false) {
-    const cloud = this.getCloud()
+  /** Met à jour l'affichage du panneau ; les calques de la scène lisent leurs réglages eux-mêmes. */
+  #apply(key) {
     const keys = key ? [key] : Object.keys(this.settings)
     for (const k of keys) {
-      if (k === 'mode') continue
-      if (k === 'veil' || k === 'veilMode') {
-        document.documentElement.style.setProperty('--veil', this.settings.veil)
-        document.documentElement.dataset.veil = this.settings.veilMode
-        this.onVeil?.()
-      } else if (k === 'vignette') document.documentElement.style.setProperty('--vignette', this.settings[k])
-      else cloud?.set(k, this.settings[k], immediate)
+      if ((k === 'veil' || k === 'veilMode' || k === 'vignette') && this.profile === this.pageProfile) this.#writePage()
       const input = this.el.querySelector(`[data-key="${k}"]`)
       const s = SLIDERS.find((x) => x.key === k)
       if (input) input.value = this.settings[k]
@@ -196,31 +189,46 @@ export class SplatPanel {
     }
   }
 
-  /** À appeler quand le nuage est prêt : applique les réglages mémorisés. */
-  attach() {
-    this.#apply(null, true)
-    this.onMode(this.settings.mode)
+  /** Habillage de la page (calque couleurs, vignettage écran) : celui de l'image visible. */
+  #writePage() {
+    const s = this.profiles[this.pageProfile] || this.profiles.other
+    const root = document.documentElement
+    root.style.setProperty('--veil', s.veil)
+    root.style.setProperty('--vignette', s.vignette)
+    root.dataset.veil = s.veilMode
   }
 
-  /** Change de profil (section affichée) : applique ses réglages et son mode de couleur. */
+  /** L'image d'un profil commence à apparaître (ou la scène se vide : 'other'). */
+  setPage(profile) {
+    this.pageProfile = PROFILES[profile] ? profile : 'other'
+    this.#writePage()
+  }
+
+  /** Réglages d'un profil (lus en continu par la scène). */
+  get(profile) {
+    return this.profiles[profile] || this.profiles.other
+  }
+
+  /** Profil modifié par le panneau : celui de la section affichée. */
   setProfile(name) {
     if (!PROFILES[name] || name === this.profile) return
     this.profile = name
     this.settings = this.profiles[name]
     this.#apply()
-    this.onMode(this.settings.mode)
     this.sync()
   }
 
-  /** Mémorise le mode de couleur choisi (Espace ou boutons) dans le profil courant. */
-  rememberMode(mode) {
-    this.settings.mode = mode
+  /** Mode de couleur (Espace ou boutons) du profil courant. */
+  setMode(mode) {
+    this.settings.mode = ((mode % 3) + 3) % 3
     save(this.profiles)
+    this.sync()
+    return this.settings.mode
   }
 
   sync() {
     this.el.querySelector('[data-profile]').textContent = PROFILE_LABELS[this.profile]
-    const mode = this.getCloud()?.colorMode ?? 0
+    const mode = this.settings.mode ?? 0
     this.el.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.mode) === mode)))
     this.el.querySelector('[data-hero-old]').checked = this.getHeroOld()
     this.el.querySelectorAll('[data-pshape]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pshape === this.settings.shape)))
@@ -239,7 +247,7 @@ export class SplatPanel {
     this.profiles[this.profile] = this.settings = profileDefaults(this.profile)
     save(this.profiles)
     this.#apply()
-    this.onMode(this.settings.mode)
+    if (this.profile === this.pageProfile) this.#writePage()
     this.sync()
   }
 

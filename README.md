@@ -5,6 +5,10 @@ Vite + Three.js (nuage de points WebGL) + Lenis (smooth scroll), sans framework.
 
 Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiches projet reprennent sa composition
 (défilement vertical qui fait glisser un bloc horizontal : texte + infos, puis images de 100 % de hauteur).
+- scène : chaque image est un calque indépendant (ses points, ses réglages, sa position) ; aucune transition
+  ne relie deux images : l'image affichée disparaît entièrement (points qui se dispersent et s'éteignent,
+  l'apparition jouée à l'envers), puis la suivante apparaît seule, avec ses réglages ; l'habillage de la page
+  (calque couleurs, vignettage) suit l'image visible (`src/webgl/PointCloud.js`) ;
 - « splat » : chaque image devient une grille de points (un par pixel échantillonné), avec sa couleur ;
   **la luminance détermine la profondeur**. Touche **Espace** : monochrome → couleurs → monochrome bleu ; **B** : ancien rendu de l'accueil ; **P** : panneau de réglages
   (taille des points, relief, distance, courbure, opacité, verre, reflets du fond, souris, respiration, parallaxe — mémorisés dans le navigateur) ;

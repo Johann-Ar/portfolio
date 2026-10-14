@@ -1,13 +1,14 @@
 import {
-  LinearFilter,
-  Texture,
   BufferAttribute,
   BufferGeometry,
   Color,
+  Group,
+  LinearFilter,
   PerspectiveCamera,
   Points,
   Scene,
   ShaderMaterial,
+  Texture,
   Vector2,
   Vector3,
   WebGLRenderer,
@@ -18,26 +19,143 @@ import { CAM_Z } from './targets.js'
 import { DEFAULT_SETTINGS } from './settings.js'
 
 /**
- * Nuage de points plein écran (« splat »).
- * Chaque cible (image) est une grille de points colorés dont la profondeur suit la luminance.
- * On passe d'une cible à l'autre par un morph avec dispersion.
- * Trois rendus (touche Espace) : monochrome (blanc / noir selon le thème),
- * couleurs de l'image, monochrome bleu (traitement des couvertures de projet).
- * Les réglages fins (panneau, touche P) passent par `settings` / `set()`.
+ * Scène de points (« splats »).
+ *
+ * Chaque image est un calque indépendant (ses points, ses réglages, sa position).
+ * Aucune transition ne relie deux images :
+ *   - l'image affichée disparaît entièrement (ses points se dispersent et s'éteignent),
+ *   - puis, scène vide, l'image suivante apparaît (points dispersés qui se rassemblent).
+ * La disparition est exactement l'apparition jouée à l'envers : une seule valeur `reveal`
+ * (0 → 1 → 0), lue par le shader. Un calque garde ses propres réglages jusqu'au bout :
+ * rien ne glisse d'une image vers la suivante.
+ *
+ * Les réglages viennent des profils du panneau (accueil, projets, contact…) via `getSettings(profil)`,
+ * lus à chaque image : une modification dans le panneau s'applique en douceur au calque concerné.
  */
 
-
-const MORPH_DURATION = 1.8
-const DISPERSE_DURATION = 1.2 // disparition d'une image (apparition à l'envers, un peu plus rapide)
-const DELAY_SPREAD = 0.35
+const APPEAR = 1.6 // durée de l'apparition (s)
+const DISAPPEAR = 1.0 // durée de la disparition (s)
+const DELAY_SPREAD = 0.35 // décalage aléatoire entre les points
 const ROT_LIMIT = { x: 0.22, y: 0.4 } // rotation manuelle volontairement limitée
 
+// réglage du panneau -> uniform du shader (valeurs continues, rejointes en douceur)
+const SETTING_UNIFORMS = {
+  size: 'uSizeFactor',
+  relief: 'uDepthScale',
+  push: 'uPush',
+  opacity: 'uOpacityMul',
+  mouseForce: 'uMouseForce',
+  mouseRadius: 'uMouseRadius',
+  breath: 'uBreath',
+  curve: 'uCurve',
+  glass: 'uGlass',
+  reflect: 'uReflect',
+  contrast: 'uContrast',
+  veilBlack: 'uVeilBlack',
+  anim: 'uAnim',
+  animSpeed: 'uAnimSpeed',
+  smokeHover: 'uSmokeHover',
+  smokeWarp: 'uSmokeWarp',
+  imgVignette: 'uImgVignette',
+  rgb: 'uRgb',
+  rgbGlow: 'uRgbGlow',
+}
+const SHAPES = { round: 0, square: 1, diamond: 2 }
+
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
+const damp = (dt, base = 0.001) => 1 - Math.pow(base, dt) // amorti indépendant du framerate
+
+/** Un calque = une image : ses points, son matériau, son état d'apparition. */
+class Layer {
+  constructor(key, data, shared, count) {
+    this.key = key
+    this.data = data
+    this.reveal = 0 // 0 invisible (dispersé), 1 image formée
+    this.dir = 0 // +1 apparaît, -1 disparaît, 0 stable
+    this.opts = { profile: 'other', opacity: 1, offset: [0, 0] }
+    this.scroll = 0
+    this.scrollTarget = 0
+
+    const geo = new BufferGeometry()
+    geo.setAttribute('position', shared.position)
+    geo.setAttribute('aRand', shared.rand)
+    geo.setAttribute('aPos', new BufferAttribute(data.pos, 4))
+    geo.setAttribute('aCol', new BufferAttribute(data.col, 4))
+    geo.setAttribute('aTone', new BufferAttribute(data.tone, 2))
+    geo.setAttribute('aOff', new BufferAttribute(data.off, 1))
+    geo.setAttribute('aUv', new BufferAttribute(data.uv || new Float32Array(count * 3), 3))
+
+    data.texture ??= data.image
+      ? Object.assign(new Texture(data.image), { minFilter: LinearFilter, generateMipmaps: false, needsUpdate: true })
+      : null
+    const im = data.image
+    this.uniforms = {
+      ...shared.uniforms, // temps, caméra, écran : communs à tous les calques
+      uReveal: { value: 0 },
+      uScroll: { value: 0 },
+      uMouse: { value: new Vector3(9999, 9999, 0) },
+      uOpacity: { value: 1 },
+      uColorMix: { value: 0 },
+      uBlueMix: { value: 0 },
+      uVeilTint: { value: 0 },
+      uShape: { value: 0 },
+      uImage: { value: data.texture },
+      uToneGain: { value: data.toneGain || 1 },
+      uAspectRatio: { value: im ? (im.naturalWidth || im.width) / (im.naturalHeight || im.height) : 1 },
+      uImgHalf: { value: new Vector2(...(data.half || [1, 1])) },
+    }
+    for (const u of Object.values(SETTING_UNIFORMS)) this.uniforms[u] = { value: 0 }
+
+    this.material = new ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: this.uniforms,
+      transparent: true,
+      depthWrite: false,
+      depthTest: true, // les points restent derrière l'élément en verre
+    })
+    this.points = new Points(geo, this.material)
+    this.points.frustumCulled = false
+    this.points.visible = false
+  }
+
+  /** Valeurs visées par les uniforms, d'après les réglages du profil du calque. */
+  targets(s, isSmall) {
+    const t = {}
+    for (const [key, u] of Object.entries(SETTING_UNIFORMS)) t[u] = s[key] ?? DEFAULT_SETTINGS[key]
+    if (isSmall) t.uMouseRadius *= 0.7
+    t.uVeilTint = s.veilMode === 'points' ? s.veil : 0 // calque couleurs posé seulement sur les points
+    t.uColorMix = s.mode === 1 ? 1 : 0
+    t.uBlueMix = s.mode === 2 ? 1 : 0
+    t.uOpacity = this.opts.opacity
+    return t
+  }
+
+  /** Applique les réglages : d'un coup (`k` = 1, au début de l'apparition) ou en douceur. */
+  applySettings(s, isSmall, k) {
+    const u = this.uniforms
+    for (const [name, v] of Object.entries(this.targets(s, isSmall))) u[name].value += (v - u[name].value) * k
+    u.uShape.value = SHAPES[s.shape] ?? 0
+  }
+
+  dispose() {
+    this.points.geometry.dispose()
+    this.material.dispose()
+  }
+}
 
 export class PointCloud {
-  constructor(canvas, { color, reducedMotion = false } = {}) {
+  /**
+   * @param {HTMLCanvasElement} canvas
+   * @param {object} o
+   * @param {string} o.color                        couleur des points en monochrome
+   * @param {boolean} o.reducedMotion
+   * @param {(profile:string) => object} o.getSettings  réglages d'un profil (lus à chaque image)
+   */
+  constructor(canvas, { color, reducedMotion = false, getSettings = () => DEFAULT_SETTINGS } = {}) {
     this.canvas = canvas
     this.reducedMotion = reducedMotion
+    this.getSettings = getSettings
     this.isSmall = window.matchMedia('(max-width: 768px)').matches
     this.count = this.isSmall ? 50000 : 120000
 
@@ -46,30 +164,28 @@ export class PointCloud {
     this.scene = new Scene()
     this.camera = new PerspectiveCamera(35, 1, 0.1, 200)
     this.camera.position.set(0, 0, CAM_Z)
+    // repère qui suit l'image affichée (volumétrie SHARP)
+    this.anchor = new Group()
+    this.scene.add(this.anchor)
 
     this.frameHooks = []
-    this.targets = new Map()
-    this.pending = new Map()
+    this.factories = new Map() // clé -> fonction qui calcule la cible
+    this.targets = new Map() // clé -> données calculées (points, couleurs, texture)
+    this.layers = new Map() // clé -> calque
+    this.current = null // calque affiché ou en train d'apparaître
+    this.leaving = null // calque en train de disparaître
+    this.wanted = null // { key, profile, opacity, offset } : image demandée
+    this.warm = [] // calques à envoyer au GPU à l'avance (évite un à-coup à leur apparition)
+    this.hidePoints = false // masqués par la volumétrie SHARP
+
     this.mouse = new Vector2(9999, 9999)
-    this.mouseWorld = new Vector3(9999, 9999, 0)
     this.parallax = new Vector2()
     this.parallaxTarget = new Vector2()
     this.userRot = { x: 0, y: 0, vx: 0, vy: 0 }
-    this.progress = 1
-    this.currentKey = null
-    this.running = true
     this.time = 0
-    this.scrollTarget = 0
-    this.opacityTarget = 1
-    this.offsetTarget = 0
-    this.phase = 'hidden' // 'shown' (image visible), 'dispersing' (en train de disparaître), 'hidden' (nuage vide)
-    this.nextImage = null // image qui apparaîtra à la fin de la dispersion
-    this.colorMode = 0 // 0 monochrome, 1 couleurs, 2 bleu
-    this.mix = { color: 0, blue: 0 }
-    this.settings = { ...DEFAULT_SETTINGS }
+    this.running = true
 
-    this.#build(color)
-    for (const [k, v] of Object.entries(this.settings)) this.set(k, v, true) // réglages par défaut appliqués d'emblée
+    this.#buildShared(color)
     this.resize()
 
     this.onResize = () => this.resize()
@@ -100,106 +216,50 @@ export class PointCloud {
     requestAnimationFrame(this.loop)
   }
 
-  #build(color) {
+  /** Données communes à tous les calques : ordre d'apparition des points, uniforms d'écran. */
+  #buildShared(color) {
     const n = this.count
-    const geo = new BufferGeometry()
-    this.buf = {
-      from: new Float32Array(n * 4),
-      to: new Float32Array(n * 4),
-      colFrom: new Float32Array(n * 4),
-      colTo: new Float32Array(n * 4),
-      toneFrom: new Float32Array(n * 2),
-      toneTo: new Float32Array(n * 2),
-      offFrom: new Float32Array(n),
-      offTo: new Float32Array(n),
-      uv: new Float32Array(n * 3),
-    }
     const rand = new Float32Array(n * 4)
     for (let i = 0; i < n * 4; i++) rand[i] = Math.random()
-    this.rand = rand
-
-    // départ : nuage dispersé et invisible, pour l'apparition au chargement
-    for (let i = 0; i < n; i++) {
-      const o = i * 4
-      this.buf.from[o] = (rand[o + 1] - 0.5) * 60
-      this.buf.from[o + 1] = (rand[o + 2] - 0.5) * 40
-      this.buf.from[o + 2] = (rand[o + 3] - 0.5) * 40
-      this.buf.from[o + 3] = 0.05
+    this.shared = {
+      position: new BufferAttribute(new Float32Array(n * 3), 3),
+      rand: new BufferAttribute(rand, 4),
+      uniforms: {
+        uTime: { value: 0 },
+        uDelaySpread: { value: DELAY_SPREAD },
+        uColor: { value: new Color(color) },
+        uLight: { value: 0 },
+        uCamZ: { value: CAM_Z },
+        uViewH: { value: 1 },
+        uAspect: { value: 1 },
+        uScreenScale: { value: 1 },
+        uMotion: { value: this.reducedMotion ? 0 : 1 },
+      },
     }
-    this.buf.to.set(this.buf.from)
-
-    geo.setAttribute('position', new BufferAttribute(new Float32Array(n * 3), 3))
-    geo.setAttribute('aFrom', new BufferAttribute(this.buf.from, 4))
-    geo.setAttribute('aTo', new BufferAttribute(this.buf.to, 4))
-    geo.setAttribute('aColFrom', new BufferAttribute(this.buf.colFrom, 4))
-    geo.setAttribute('aColTo', new BufferAttribute(this.buf.colTo, 4))
-    geo.setAttribute('aToneFrom', new BufferAttribute(this.buf.toneFrom, 2))
-    geo.setAttribute('aToneTo', new BufferAttribute(this.buf.toneTo, 2))
-    geo.setAttribute('aOffFrom', new BufferAttribute(this.buf.offFrom, 1))
-    geo.setAttribute('aOffTo', new BufferAttribute(this.buf.offTo, 1))
-    geo.setAttribute('aUv', new BufferAttribute(this.buf.uv, 3))
-    geo.setAttribute('aRand', new BufferAttribute(rand, 4))
-
-    this.uniforms = {
-      uTime: { value: 0 },
-      uMix: { value: 1 },
-      uDelaySpread: { value: DELAY_SPREAD },
-      uScroll: { value: 0 },
-      uMouse: { value: this.mouseWorld },
-      uMouseRadius: { value: this.isSmall ? 2.2 : 3.2 },
-      uColor: { value: new Color(color) },
-      uLight: { value: 0 }, // thème clair retiré : toujours 0
-      uColorMix: { value: 0 },
-      uBlueMix: { value: 0 },
-      uOpacity: { value: 1 },
-      uOpacityMul: { value: 1 },
-      uSizeFactor: { value: DEFAULT_SETTINGS.size },
-      uDepthScale: { value: 1 },
-      uPush: { value: 0 },
-      uMouseForce: { value: 1 },
-      uBreath: { value: 1 },
-      uCamZ: { value: CAM_Z },
-      uCurve: { value: DEFAULT_SETTINGS.curve },
-      uImgHalf: { value: new Vector2(1, 1) }, // demi-largeur, demi-hauteur de l'image affichée
-      uViewH: { value: 1 },
-      uGlass: { value: DEFAULT_SETTINGS.glass },
-      uContrast: { value: 1 },
-      uVeilTint: { value: 0 },
-      uVeilBlack: { value: 0 },
-      uImage: { value: null }, // image affichée, relue avec un mouvement lent (animation de l'image)
-      uAnim: { value: 0 },
-      uAnimSpeed: { value: 1 },
-      uToneGain: { value: 1 },
-      uSmokeHover: { value: 1.5 },
-      uSmokeWarp: { value: 0.3 },
-      uShape: { value: 0 },
-      uImgVignette: { value: 0 },
-      uAspectRatio: { value: 2 },
-      uRgb: { value: 0 },
-      uRgbGlow: { value: 0.5 },
-      uReflect: { value: DEFAULT_SETTINGS.reflect },
-      uAspect: { value: 1 },
-      uScreenScale: { value: 1 },
-      uMotion: { value: this.reducedMotion ? 0 : 1 },
-    }
-
-    this.material = new ShaderMaterial({
-      vertexShader,
-      fragmentShader,
-      uniforms: this.uniforms,
-      transparent: true,
-      depthWrite: false,
-      depthTest: true, // les points restent derrière le logo en verre
-    })
-    this.points = new Points(geo, this.material)
-    this.points.frustumCulled = false
-    this.scene.add(this.points)
   }
 
   /** Taille visible du plan z = 0, en unités monde. */
   get viewSize() {
     const h = 2 * Math.tan((this.camera.fov * Math.PI) / 360) * this.camera.position.z
     return { w: h * this.camera.aspect, h }
+  }
+
+  /** Réglages de l'image affichée (élément en verre, volumétrie SHARP). */
+  get settings() {
+    const layer = this.current || this.leaving
+    return this.getSettings(layer?.opts.profile || this.wanted?.profile || 'hero')
+  }
+
+  get colorMode() {
+    return this.settings.mode ?? 0
+  }
+
+  /** Opacité effective de l'image affichée (volumétrie SHARP). */
+  get displayOpacity() {
+    const layer = this.current || this.leaving
+    if (!layer) return 0
+    const u = layer.uniforms
+    return u.uOpacity.value * u.uOpacityMul.value * layer.reveal
   }
 
   resize() {
@@ -211,171 +271,141 @@ export class PointCloud {
     this.renderer.setSize(w, h, false)
     this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
-    this.uniforms.uViewH.value = this.viewSize.h
-    this.uniforms.uAspect.value = w / h
+    const u = this.shared.uniforms
+    u.uViewH.value = this.viewSize.h
+    u.uAspect.value = w / h
     // pixels écran par unité monde à distance 1 : une cellule de la grille couvre exactement sa place
-    this.uniforms.uScreenScale.value = (h * dpr) / (2 * Math.tan((this.camera.fov * Math.PI) / 360))
+    u.uScreenScale.value = (h * dpr) / (2 * Math.tan((this.camera.fov * Math.PI) / 360))
 
     // les cibles dépendent du cadrage : on les recalcule (sauf si seule la hauteur change, ex. barre d'adresse mobile)
     const widthChanged = this.lastWidth !== undefined && this.lastWidth !== w
     this.lastWidth = w
     this.onResized?.()
     if (widthChanged && this.targets.size) {
-      this.targets.clear()
       clearTimeout(this.resizeTimer)
-      this.resizeTimer = setTimeout(() => this.currentKey && this.show(this.currentKey, { instant: true, force: true }), 200)
+      this.resizeTimer = setTimeout(() => this.#rebuild(), 200)
     }
   }
 
-  /** Applique un réglage ; sauf `immediate`, la valeur est rejointe en douceur (changement de section). */
-  set(name, value, immediate = false) {
-    this.settings[name] = value
-    if (name === 'shape') {
-      this.uniforms.uShape.value = { round: 0, square: 1, diamond: 2 }[value] ?? 0
-      return
+  /** Recalcule toutes les cibles ; l'image demandée réapparaît directement formée. */
+  #rebuild() {
+    for (const layer of this.layers.values()) {
+      this.scene.remove(layer.points)
+      layer.dispose()
     }
-    const map = { size: 'uSizeFactor', relief: 'uDepthScale', push: 'uPush', opacity: 'uOpacityMul', mouseForce: 'uMouseForce', breath: 'uBreath', curve: 'uCurve', glass: 'uGlass', reflect: 'uReflect', contrast: 'uContrast', mouseRadius: 'uMouseRadius', veilTint: 'uVeilTint', veilBlack: 'uVeilBlack', anim: 'uAnim', animSpeed: 'uAnimSpeed', smokeHover: 'uSmokeHover', smokeWarp: 'uSmokeWarp', imgVignette: 'uImgVignette', rgb: 'uRgb', rgbGlow: 'uRgbGlow' }
-    const uniform = map[name]
-    if (!uniform) return
-    const v = name === 'mouseRadius' ? value * (this.isSmall ? 0.7 : 1) : value
-    this.uniformTargets ??= {}
-    this.uniformTargets[uniform] = v
-    // nuage vide (section sans image) : le réglage s'applique d'un coup, sans transition visible
-    if (immediate || this.phase === 'hidden') this.uniforms[uniform].value = v
+    for (const data of this.targets.values()) data.texture?.dispose()
+    this.layers.clear()
+    this.targets.clear()
+    this.current = this.leaving = null
+    this.warm = []
+    if (this.wanted) this.#resolve(this.wanted.key).then(() => this.#start(true))
   }
 
-  /** Enregistre une cible : fonction asynchrone (count, view, isSmall) -> { pos, col, tone, off }. */
+  /** Enregistre une cible : fonction asynchrone (count, view, isSmall) -> { pos, col, tone, off, uv, image }. */
   register(key, factory) {
-    this.pending.set(key, factory)
+    this.factories.set(key, factory)
   }
 
-  async #resolve(key) {
-    if (this.targets.has(key)) return this.targets.get(key)
-    const factory = this.pending.get(key)
-    if (!factory) return null
-    const data = await factory(this.count, this.viewSize, this.isSmall)
-    this.targets.set(key, data)
+  #resolve(key) {
+    if (this.targets.has(key)) return Promise.resolve(this.targets.get(key))
+    this.resolving ??= new Map()
+    if (!this.resolving.has(key)) {
+      const factory = this.factories.get(key)
+      if (!factory) return Promise.resolve(null)
+      const job = factory(this.count, this.viewSize, this.isSmall).then((data) => {
+        this.resolving.delete(key)
+        this.targets.set(key, data)
+        return data
+      })
+      this.resolving.set(key, job)
+    }
+    return this.resolving.get(key)
+  }
+
+  #layer(key) {
+    let layer = this.layers.get(key)
+    if (!layer) {
+      layer = new Layer(key, this.targets.get(key), this.shared, this.count)
+      this.layers.set(key, layer)
+      this.scene.add(layer.points)
+    }
+    return layer
+  }
+
+  /** Calcule une cible à l'avance et l'envoie au GPU (son apparition sera fluide). */
+  async preload(key) {
+    const data = await this.#resolve(key)
+    if (data && !this.layers.has(key)) this.warm.push(this.#layer(key))
     return data
   }
 
-  preload(key) {
-    return this.#resolve(key)
-  }
-
   /**
-   * Affiche une image. Aucune transition ne relie deux images : l'image visible se disperse
-   * entièrement (apparition à l'envers), puis la suivante apparaît seule, avec ses propres réglages.
+   * Demande une image. `profile` : réglages à utiliser, `opacity` : opacité de section,
+   * `offset` : décalage [x, y] en fraction de l'écran. Rappeler avec la même clé met à jour ces options.
    */
-  async show(key, { instant = false, force = false } = {}) {
-    this.wanted = key
-    const visible = this.phase === 'shown' && this.currentKey
-    if (visible && key !== this.currentKey && !instant && !this.reducedMotion) this.#disperse() // tout de suite, sans attendre le chargement
-    const data = await this.#resolve(key)
-    if (!data || this.wanted !== key) return
-    if (instant || this.reducedMotion) return this.#apply(key, data, true)
-    if (this.phase === 'shown' && key === this.currentKey && !force) return
-    if (this.phase === 'dispersing') this.nextImage = { key, data } // apparaîtra à la fin de la dispersion
-    else this.#apply(key, data, false)
+  show(key, { profile = 'other', opacity = 1, offset = [0, 0], instant = false } = {}) {
+    this.wanted = { key, profile, opacity, offset }
+    const opts = { profile, opacity, offset }
+    if (this.current?.key === key) {
+      this.current.opts = opts
+      return
+    }
+    // retour sur l'image en train de disparaître : elle se reforme (apparition reprise là où elle en est)
+    if (!this.current && this.leaving?.key === key) {
+      this.current = this.leaving
+      this.leaving = null
+      this.current.dir = 1
+      this.current.opts = opts
+      return
+    }
+    if (this.current) this.#leave(this.current)
+    this.#resolve(key).then(() => instant && this.wanted?.key === key && this.#start(true))
   }
 
-  /** Section sans image : l'image visible se disperse et le nuage reste vide. */
+  /** Section sans image : l'image affichée disparaît, la scène reste vide. */
   hide() {
     this.wanted = null
-    this.nextImage = null
-    if (this.phase === 'shown' && this.currentKey && !this.reducedMotion) this.#disperse()
-    else if (this.reducedMotion) this.phase = 'hidden'
+    if (this.current) this.#leave(this.current)
   }
 
-  /** Les réglages de la nouvelle image s'appliquent d'un coup, pendant qu'elle est encore invisible. */
-  #snapSettings() {
-    const u = this.uniforms
-    for (const name in this.uniformTargets) u[name].value = this.uniformTargets[name]
-    u.uScroll.value = this.scrollTarget
-    u.uOpacity.value = this.opacityTarget
-    u.uColorMix.value = this.colorMode === 1 ? 1 : 0
-    u.uBlueMix.value = this.colorMode === 2 ? 1 : 0
-    this.points.position.x = this.offsetTarget * this.viewSize.w
-    this.points.position.y = (this.offsetYTarget || 0) * this.viewSize.h
-    this.userRot.x = this.userRot.y = this.userRot.vx = this.userRot.vy = 0
+  #leave(layer) {
+    if (this.leaving && this.leaving !== layer) this.#drop(this.leaving)
+    layer.dir = -1
+    this.leaving = layer
+    this.current = null
   }
 
-  /** Inverse de l'apparition : l'image affichée se défait en nuage dispersé et invisible. */
-  #disperse() {
-    if (this.phase === 'dispersing') return
-    this.phase = 'dispersing'
-    this.nextImage = null
-    const b = this.buf
-    const rand = this.rand
-    b.from.set(b.to)
-    b.colFrom.set(b.colTo)
-    b.toneFrom.set(b.toneTo)
-    b.offFrom.set(b.offTo)
-    for (let i = 0; i < this.count; i++) {
-      const o = i * 4
-      b.to[o] = (rand[o + 1] - 0.5) * 60
-      b.to[o + 1] = (rand[o + 2] - 0.5) * 40
-      b.to[o + 2] = (rand[o + 3] - 0.5) * 40
-      b.to[o + 3] = b.from[o + 3] * 0.3
-      b.colTo[o + 3] = 0
-      b.toneTo[i * 2] = 0
-      b.toneTo[i * 2 + 1] = 0
-    }
-    this.progress = 0
-    this.morphDuration = DISPERSE_DURATION
-    const a = this.points.geometry.attributes
-    for (const name of ['aFrom', 'aTo', 'aColFrom', 'aColTo', 'aToneFrom', 'aToneTo', 'aOffFrom', 'aOffTo']) a[name].needsUpdate = true
+  #drop(layer) {
+    layer.reveal = 0
+    layer.dir = 0
+    layer.points.visible = false
+    if (this.leaving === layer) this.leaving = null
+    if (this.current === layer) this.current = null
   }
 
-  /** Installe une cible : directement, ou en apparition (points dispersés qui se rassemblent). */
-  #apply(key, data, instant) {
-    const b = this.buf
+  /** Fait apparaître l'image demandée (scène vide) avec ses propres réglages, appliqués d'un coup. */
+  #start(instant = false) {
+    const w = this.wanted
+    if (!w || !this.targets.has(w.key)) return
     if (instant) {
-      b.from.set(data.pos)
-      b.colFrom.set(data.col)
-      b.toneFrom.set(data.tone)
-      b.offFrom.set(data.off)
-      this.progress = 1
-    } else {
-      // départ : nuage dispersé et invisible, comme au chargement du site
-      const rand = this.rand
-      for (let i = 0; i < this.count; i++) {
-        const o = i * 4
-        b.from[o] = (rand[o + 1] - 0.5) * 60
-        b.from[o + 1] = (rand[o + 2] - 0.5) * 40
-        b.from[o + 2] = (rand[o + 3] - 0.5) * 40
-        b.from[o + 3] = data.pos[o + 3] * 0.3
-        b.colFrom[o] = data.col[o]
-        b.colFrom[o + 1] = data.col[o + 1]
-        b.colFrom[o + 2] = data.col[o + 2]
-        b.colFrom[o + 3] = 0
-        b.toneFrom[i * 2] = 0
-        b.toneFrom[i * 2 + 1] = 0
-      }
-      b.offFrom.set(data.off)
-      this.progress = 0
+      if (this.leaving) this.#drop(this.leaving)
+      if (this.current && this.current.key !== w.key) this.#drop(this.current)
     }
-    this.morphDuration = MORPH_DURATION
-    this.phase = 'shown'
-    this.#snapSettings()
-    b.to.set(data.pos)
-    b.colTo.set(data.col)
-    b.toneTo.set(data.tone)
-    b.offTo.set(data.off)
-    if (data.uv) b.uv.set(data.uv)
-    // texture de l'image (une par cible), pour l'animer sous la grille de points
-    if (data.image) {
-      data.texture ??= Object.assign(new Texture(data.image), { minFilter: LinearFilter, generateMipmaps: false, needsUpdate: true })
-      this.uniforms.uImage.value = data.texture
-      this.uniforms.uToneGain.value = data.toneGain || 1
-      if (data.half) this.uniforms.uImgHalf.value.set(data.half[0], data.half[1])
-      const im = data.image
-      this.uniforms.uAspectRatio.value = (im.naturalWidth || im.width) / (im.naturalHeight || im.height)
-    }
-    this.currentKey = key
-    this.userRot.vx = this.userRot.vy = 0
-
-    const a = this.points.geometry.attributes
-    for (const name of ['aFrom', 'aTo', 'aColFrom', 'aColTo', 'aToneFrom', 'aToneTo', 'aOffFrom', 'aOffTo', 'aUv']) a[name].needsUpdate = true
+    const layer = this.#layer(w.key)
+    layer.opts = { profile: w.profile, opacity: w.opacity, offset: w.offset }
+    layer.applySettings(this.getSettings(w.profile), this.isSmall, 1)
+    layer.scroll = layer.scrollTarget
+    layer.uniforms.uScroll.value = layer.scroll
+    const { w: vw, h: vh } = this.viewSize
+    layer.points.position.set(w.offset[0] * vw, w.offset[1] * vh, 0)
+    layer.points.rotation.set(0, 0, 0)
+    this.userRot.x = this.userRot.y = this.userRot.vx = this.userRot.vy = 0
+    layer.reveal = instant || this.reducedMotion ? 1 : 0
+    layer.dir = layer.reveal < 1 ? 1 : 0
+    layer.uniforms.uReveal.value = layer.reveal
+    layer.points.visible = true
+    this.current = layer
+    this.onStage?.(w.profile) // l'habillage de la page (calque, vignettage) suit l'image qui apparaît
   }
 
   /** Rotation au glisser (dx, dy en pixels), limitée. */
@@ -392,28 +422,9 @@ export class PointCloud {
     this.dragging = false
   }
 
-  /** Mode de couleur : 0 monochrome, 1 couleurs de l'image, 2 monochrome bleu. */
-  setColorMode(mode) {
-    this.colorMode = ((mode % 3) + 3) % 3
-    return this.colorMode
-  }
-
-  cycleColorMode() {
-    return this.setColorMode(this.colorMode + 1)
-  }
-
+  /** Sortie au scroll de l'accueil (le nuage se déploie en profondeur) : agit sur l'image affichée. */
   setScroll(v) {
-    this.scrollTarget = v
-  }
-
-  setOpacity(v) {
-    this.opacityTarget = v
-  }
-
-  /** Décalage horizontal du nuage, en fraction de la largeur visible. */
-  setOffset(v, y = 0) {
-    this.offsetTarget = v
-    this.offsetYTarget = y
+    if (this.current) this.current.scrollTarget = v
   }
 
   pause() {
@@ -427,60 +438,75 @@ export class PointCloud {
     requestAnimationFrame(this.loop)
   }
 
+  #advance(layer, dt) {
+    if (!layer.dir) return
+    const duration = this.reducedMotion ? 0.35 : layer.dir > 0 ? APPEAR : DISAPPEAR
+    layer.reveal = clamp(layer.reveal + (layer.dir * dt) / duration, 0, 1)
+    layer.uniforms.uReveal.value = layer.reveal
+    if (layer.dir > 0 && layer.reveal >= 1) layer.dir = 0
+    if (layer.dir < 0 && layer.reveal <= 0) {
+      this.#drop(layer)
+      this.onStage?.(null) // scène vide : l'habillage de l'image partie s'en va avec elle
+    }
+  }
+
   loop(now) {
     if (!this.running) return
     const dt = Math.min((now - this.last) / 1000, 0.05)
     this.last = now
     this.time += dt
+    this.shared.uniforms.uTime.value = this.time
 
-    if (this.progress < 1) this.progress = Math.min(this.progress + dt / (this.morphDuration || MORPH_DURATION), 1)
-    const u = this.uniforms
-    u.uMix.value = this.progress
-    u.uTime.value = this.time
+    // 1. la disparition en cours se poursuit, figée dans son état (réglages, position, rotation)
+    if (this.leaving) this.#advance(this.leaving, dt)
+    // 2. scène vide : l'image demandée apparaît dès qu'elle est prête
+    if (!this.leaving && !this.current && this.wanted && this.targets.has(this.wanted.key)) this.#start()
 
-    // valeurs amorties, indépendantes du framerate
-    const k = 1 - Math.pow(0.001, dt)
-    // pendant la disparition, l'image garde ses propres réglages (rien ne glisse vers ceux de la suivante)
-    if (this.phase === 'dispersing') {
-      if (this.progress >= 1) {
-        this.phase = 'hidden'
-        const next = this.nextImage
-        this.nextImage = null
-        if (next && this.wanted === next.key) this.#apply(next.key, next.data, false)
-      }
-    } else {
-      u.uScroll.value += (this.scrollTarget - u.uScroll.value) * k
-      u.uOpacity.value += ((this.phase === 'hidden' ? 0 : this.opacityTarget) - u.uOpacity.value) * k
-      for (const name in this.uniformTargets) u[name].value += (this.uniformTargets[name] - u[name].value) * k
-      u.uColorMix.value += ((this.colorMode === 1 ? 1 : 0) - u.uColorMix.value) * k
-      u.uBlueMix.value += ((this.colorMode === 2 ? 1 : 0) - u.uBlueMix.value) * k
-      const ox = this.offsetTarget * this.viewSize.w
-      this.points.position.x += (ox - this.points.position.x) * (1 - Math.pow(0.02, dt))
-      const oy = (this.offsetYTarget || 0) * this.viewSize.h
-      this.points.position.y += (oy - this.points.position.y) * (1 - Math.pow(0.02, dt))
-    }
-
+    // 3. l'image affichée suit ses réglages (modifications du panneau), sa position et la souris
+    const layer = this.current
     const { w, h } = this.viewSize
-    this.mouseWorld.set((this.mouse.x * w) / 2 - this.points.position.x, (this.mouse.y * h) / 2 - this.points.position.y, 0)
+    if (layer) {
+      this.#advance(layer, dt)
+      const s = this.getSettings(layer.opts.profile)
+      layer.applySettings(s, this.isSmall, damp(dt))
+      layer.scroll += (layer.scrollTarget - layer.scroll) * damp(dt)
+      layer.uniforms.uScroll.value = layer.scroll
+      const p = layer.points.position
+      p.x += (layer.opts.offset[0] * w - p.x) * damp(dt, 0.02)
+      p.y += (layer.opts.offset[1] * h - p.y) * damp(dt, 0.02)
+      layer.uniforms.uMouse.value.set((this.mouse.x * w) / 2 - p.x, (this.mouse.y * h) / 2 - p.y, 0)
 
-    if (!this.reducedMotion) {
-      this.parallax.lerp(this.parallaxTarget, 1 - Math.pow(0.08, dt))
-      const r = this.userRot
-      if (!this.dragging) {
-        r.y = clamp(r.y + r.vy, -ROT_LIMIT.y, ROT_LIMIT.y)
-        r.x = clamp(r.x + r.vx, -ROT_LIMIT.x, ROT_LIMIT.x)
-        r.vx *= Math.pow(0.02, dt)
-        r.vy *= Math.pow(0.02, dt)
-        r.x *= Math.pow(0.5, dt)
-        r.y *= Math.pow(0.5, dt)
+      if (!this.reducedMotion) {
+        this.parallax.lerp(this.parallaxTarget, damp(dt, 0.08))
+        const r = this.userRot
+        if (!this.dragging) {
+          r.y = clamp(r.y + r.vy, -ROT_LIMIT.y, ROT_LIMIT.y)
+          r.x = clamp(r.x + r.vx, -ROT_LIMIT.x, ROT_LIMIT.x)
+          r.vx *= Math.pow(0.02, dt)
+          r.vy *= Math.pow(0.02, dt)
+          r.x *= Math.pow(0.5, dt)
+          r.y *= Math.pow(0.5, dt)
+        }
+        const px = s.parallax ?? DEFAULT_SETTINGS.parallax
+        layer.points.rotation.y = this.parallax.x * 0.08 * px + r.y
+        layer.points.rotation.x = -this.parallax.y * 0.05 * px + r.x
       }
-      const px = this.settings.parallax
-      this.points.rotation.y = this.parallax.x * 0.08 * px + r.y
-      this.points.rotation.x = -this.parallax.y * 0.05 * px + r.x
     }
+    const shown = this.current || this.leaving
+    if (shown) {
+      this.anchor.position.copy(shown.points.position)
+      this.anchor.rotation.copy(shown.points.rotation)
+    }
+    for (const l of [this.current, this.leaving]) if (l) l.material.visible = !this.hidePoints
 
-    for (const hook of this.frameHooks) hook(dt) // calques additionnels (logo, volumétrie SHARP)
+    // 4. un calque préchargé est dessiné une fois, invisible (reveal 0) : ses données partent au GPU maintenant
+    const warming = this.warm.shift()
+    const warmOnce = warming && warming !== this.current && warming !== this.leaving
+    if (warmOnce) warming.points.visible = true
+
+    for (const hook of this.frameHooks) hook(dt) // calques additionnels (élément en verre, volumétrie SHARP)
     this.renderer.render(this.scene, this.camera)
+    if (warmOnce) warming.points.visible = false
     requestAnimationFrame(this.loop)
   }
 }

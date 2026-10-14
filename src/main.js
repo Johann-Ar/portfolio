@@ -231,13 +231,17 @@ async function initCloud() {
     import('./webgl/PointCloud.js'),
     import('./webgl/targets.js'),
   ])
-  cloud = new PointCloud(canvas, { color: POINTS_COLOR, reducedMotion })
+  // chaque image lit les réglages de son profil (panneau P) ; l'habillage de la page suit l'image qui apparaît
+  cloud = new PointCloud(canvas, { color: POINTS_COLOR, reducedMotion, getSettings: (profile) => panel.get(profile) })
+  cloud.onStage = (profile) => {
+    panel.setPage(profile || 'other')
+    root.classList.toggle('show-veil', !!profile)
+  }
   cloud.onContextLost = () => root.classList.add('no-webgl')
   // élément 3D en verre au centre de l'accueil (technique de la référence, forme de Johann)
   import('./webgl/GlassElement.js')
     .then(({ GlassElement }) => {
       logo = new GlassElement(cloud)
-      panel.attach()
       updateCloud()
     })
     .catch((err) => console.warn('Élément 3D indisponible', err))
@@ -251,7 +255,6 @@ async function initCloud() {
   cloud.register('hero-old', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6 }))
   // contact : Thomas Gainsborough, « View near King's Bromley-on-Trent » (domaine public)
   cloud.register('contact', imageTarget(`${BASE}media/site/view-near.webp`, far))
-  panel.attach()
   // projets : les couvertures du portfolio (imprimées sur fond blanc)
   for (const p of projects) cloud.register(p.slug, imageTarget(`${BASE}media/${p.cloud}`, { paper: true, size: 0.5, depth: 6 }))
   await cloud.preload('hero')
@@ -265,14 +268,11 @@ const workSection = document.getElementById('projets')
 let selected = projects[0].slug
 let inWork = false
 let heroOld = false // touche B
+let stageReady = false // la scène démarre quand le chargement se termine
 
 /* Panneau de réglage des splats (touche P) */
 function setColorMode(mode) {
-  if (!cloud) return
-  const m = cloud.setColorMode(mode)
-  root.dataset.cloudMode = ['mono', 'color', 'blue'][m]
-  panel.rememberMode(m)
-  panel.sync()
+  panel.setMode(mode) // l'image du profil courant passe en douceur au nouveau mode
 }
 /* Volumétrie : nuage de points (par défaut) ou vrais Gaussian splats SHARP (Spark + SPZ) */
 let volume = 'points'
@@ -311,21 +311,13 @@ function setHeroOld(v) {
   updateCloud()
   panel.sync()
 }
-/* calque couleurs en mode « points » : appliqué dans le shader (accueil et contact) */
-function updateVeilTint() {
-  const s = panel.settings
-  const on = root.classList.contains('show-veil') && !root.classList.contains('case-open') && s.veilMode === 'points'
-  cloud?.set('veilTint', on ? s.veil : 0)
-}
 const panel = new SplatPanel({
-  getCloud: () => cloud,
   onMode: setColorMode,
   getHeroOld: () => heroOld,
   setHeroOld,
   getVolume: () => volume,
   setVolume,
 })
-panel.onVeil = () => updateVeilTint()
 
 function updateCloud() {
   const vh = window.innerHeight
@@ -335,9 +327,6 @@ function updateCloud() {
   for (const s of sections) {
     if (s.getBoundingClientRect().top <= mid) section = s
   }
-  // calque aux couleurs du fond : sur toutes les sections qui affichent une image (accueil, projets, contact)
-  root.classList.toggle('show-veil', section.dataset.cloud !== 'none')
-  updateVeilTint()
   logo?.setProgress(Math.min(heroProgress * 1.8, 1)) // le logo sort avant que le texte ne le croise
   const nowInWork = section === workSection
   if (nowInWork !== inWork) {
@@ -345,25 +334,28 @@ function updateCloud() {
     links.forEach((l) => l.classList.toggle('is-active', inWork && l.dataset.slug === selected))
     list.classList.toggle('has-selection', inWork)
   }
-  if (!cloud) return
-  let key = inWork ? selected : section.dataset.cloud
-  // d'abord l'image (l'ancienne commence à disparaître avec ses propres réglages), puis les réglages de la suivante
-  // sections sans image (compétences, à propos) : l'image se disperse, le nuage reste vide
-  const empty = key === 'none'
-  if (empty) cloud.hide()
-  else {
-    sharp?.show(key)
-    if (key === 'hero' && heroOld) key = 'hero-old'
-    cloud.show(key)
-  }
-  // réglages selon le type d'image affichée (appliqués d'un coup quand elle apparaît)
+  // le panneau modifie les réglages de la section affichée
   const profile = { top: 'hero', projets: 'project', contact: 'contact' }[section.id] || 'other'
   panel.setProfile(profile)
-  cloud.setScroll(section.id === 'top' ? heroProgress * 0.4 : 0)
-  // mobile : le nuage du projet passe au-dessus de la liste, plus discret pour garder le texte lisible
+  if (!cloud || !stageReady) return
+
+  let key = inWork ? selected : section.dataset.cloud
+  if (key === 'none') {
+    // section sans image (compétences, à propos) : l'image disparaît, la scène reste vide
+    cloud.hide()
+    sharp?.show(null)
+    return
+  }
+  sharp?.show(key)
+  if (key === 'hero' && heroOld) key = 'hero-old'
+  // mobile : le projet passe au-dessus de la liste, plus discret pour garder le texte lisible
   const smallWork = inWork && isSmall()
-  cloud.setOpacity(smallWork ? 0.55 : Number(section.dataset.cloudOpacity ?? 1))
-  cloud.setOffset(inWork && !isSmall() ? 0.17 : 0, smallWork ? 0.2 : 0)
+  cloud.show(key, {
+    profile,
+    opacity: smallWork ? 0.55 : Number(section.dataset.cloudOpacity ?? 1),
+    offset: [inWork && !isSmall() ? 0.17 : 0, smallWork ? 0.2 : 0],
+  })
+  cloud.setScroll(section.id === 'top' ? heroProgress * 0.4 : 0)
 }
 
 /* Le texte d'accueil fond quand le titre « Projets choisis » apparaît */
@@ -445,7 +437,7 @@ window.addEventListener('keydown', (e) => {
   if (e.target.closest?.('input, textarea, select, button, a, [contenteditable]')) return
   if (e.code === 'Space') {
     e.preventDefault()
-    setColorMode(cloud.colorMode + 1) // monochrome -> couleurs -> bleu
+    setColorMode(panel.settings.mode + 1) // monochrome -> couleurs -> bleu
   } else if (e.key === 'v' || e.key === 'V') {
     setVolume(volume === 'sharp' ? 'points' : 'sharp')
   } else if (e.key === 'b' || e.key === 'B') {
@@ -550,6 +542,7 @@ Promise.all([
       loader.classList.add('is-hidden')
       root.classList.add('is-ready')
       document.querySelectorAll('.words, .reveal').forEach((el) => revealObserver.observe(el))
+      stageReady = true
       // les points dispersés se rassemblent pour former l'image d'accueil
       updateCloud()
       updateSkills()

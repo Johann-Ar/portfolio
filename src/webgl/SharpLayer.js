@@ -9,7 +9,7 @@ import { CAM_Z } from './targets.js'
  * -> Spark (World Labs, rendu Three.js). Les .spz sont générés hors ligne
  * (scripts/ply-to-spz.py) et décrits dans public/splats/index.json.
  *
- * Les splats sont enfants du nuage de points : ils héritent du décalage de la section
+ * Les splats suivent l'image affichée (repère `cloud.anchor`) : ils héritent du décalage de la section
  * Projets, de la parallaxe et de la rotation au glisser. Chargement à la demande.
  */
 
@@ -44,7 +44,7 @@ export class SharpLayer {
   setEnabled(v) {
     this.enabled = v
     if (v && this.wanted) this.show(this.wanted)
-    if (!v) this.cloud.points.material.visible = true
+    if (!v) this.cloud.hidePoints = false
   }
 
   /** Affiche la scène SHARP associée à `key` (si elle existe). */
@@ -53,7 +53,7 @@ export class SharpLayer {
     if (!this.enabled) return
     if (!this.has(key)) {
       this.current = null
-      this.cloud.points.material.visible = true
+      this.cloud.hidePoints = false
       return
     }
     const mesh = await this.#load(key)
@@ -61,7 +61,7 @@ export class SharpLayer {
     this.current = key
     this.#place(key, mesh)
     // le nuage de points s'efface au profit des gaussiennes
-    this.cloud.points.material.visible = false
+    this.cloud.hidePoints = true
   }
 
   async #load(key) {
@@ -73,7 +73,7 @@ export class SharpLayer {
     mesh.userData.fade = 0
     mesh.userData.info = info
     this.meshes.set(key, mesh)
-    this.cloud.points.add(mesh)
+    this.cloud.anchor.add(mesh) // suit la position et la rotation de l'image affichée
     await mesh.initialized
     this.onStatus?.('')
     return mesh
@@ -110,8 +110,7 @@ export class SharpLayer {
   #frame(dt) {
     if (!this.meshes.size) return
     const k = 1 - Math.exp(-FADE * dt)
-    const u = this.cloud.uniforms
-    const opacity = Math.min(u.uOpacity.value * u.uOpacityMul.value, 1)
+    const opacity = Math.min(this.cloud.displayOpacity, 1)
     const tint = this.#tint()
     for (const [key, mesh] of this.meshes) {
       const target = this.enabled && key === this.current ? 1 : 0

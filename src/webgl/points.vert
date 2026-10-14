@@ -1,12 +1,8 @@
-attribute vec4 aFrom;      // xyz (relief) + taille de cellule
-attribute vec4 aTo;
-attribute vec4 aColFrom;   // rgb + présence
-attribute vec4 aColTo;
-attribute vec2 aToneFrom;  // opacité monochrome (thème sombre, thème clair)
-attribute vec2 aToneTo;
-attribute float aOffFrom;  // recul de l'image
-attribute float aOffTo;
-attribute vec4 aRand;
+attribute vec4 aPos;       // position dans l'image (xyz, relief) + taille de cellule
+attribute vec4 aCol;       // rgb + présence
+attribute vec2 aTone;      // opacité monochrome
+attribute float aOff;      // recul de l'image
+attribute vec4 aRand;      // x : ordre d'apparition, yzw : position dispersée
 attribute vec3 aUv;        // position dans l'image + sens du ton (animation de l'image)
 
 uniform sampler2D uImage;  // image affichée par les points
@@ -15,7 +11,7 @@ uniform float uAnimSpeed;
 uniform float uToneGain;
 
 uniform float uTime;
-uniform float uMix;
+uniform float uReveal;     // 0 : points dispersés et éteints, 1 : image formée (la disparition joue l'apparition à l'envers)
 uniform float uDelaySpread;
 uniform float uScroll;
 uniform vec3 uMouse;
@@ -98,24 +94,51 @@ float easeInOutCubic(float t) {
 }
 
 void main() {
-  // morph avec décalage par point + dispersion à mi-parcours
-  float local = clamp((uMix - aRand.x * uDelaySpread) / (1.0 - uDelaySpread), 0.0, 1.0);
+  // apparition / disparition : chaque point part (ou repart) avec un léger décalage, et s'écarte à mi-parcours
+  float local = clamp((uReveal - aRand.x * uDelaySpread) / (1.0 - uDelaySpread), 0.0, 1.0);
   float m = easeInOutCubic(local);
-  float burst = sin(3.14159265 * m);
+  float burst = sin(3.14159265 * m) * uMotion;
+  float baseOff = aOff;
+  float off = baseOff + uPush;
 
-  vec3 pos = mix(aFrom.xyz, aTo.xyz, m);
-  pos.z *= uDepthScale;
+  // 1. l'image formée : relief, puis courbure
+  vec3 img = aPos.xyz;
+  img.z *= uDepthScale;
+  float scaleAtDepth = (uCamZ + baseOff) / uCamZ;
+  if (baseOff > 0.5) {
+    // images plein écran reculées (accueil, contact) : courbure douce, calée sur l'écran
+    vec2 q = img.xy / (uViewH * 0.5 * scaleAtDepth);
+    img.z += uCurve * dot(q, q) * 12.0 * scaleAtDepth;
+  } else if (abs(uCurve) > 0.001) {
+    // images de projet : l'image s'enroule sur une sphère sans être déformée ;
+    // au maximum elle forme une boule, quel que soit son format (rayon tiré de ses dimensions)
+    float t = clamp(abs(uCurve) / 1.5, 0.0, 1.0);
+    float s = sign(uCurve);
+    float R = max(uImgHalf.x / 3.14159, uImgHalf.y / 1.5708) / t;
+    float h = img.z; // relief : porté le long de la normale de la sphère
+    float lon = img.x / R;
+    float lat = img.y / R;
+    float cl = cos(lat);
+    float cc = cl * cos(lon);
+    float sag = img.y * halfVers(lat) + cl * img.x * halfVers(lon); // R·(1 − cos lat · cos lon)
+    img.x = img.x * sinc(lon) * cl - s * h * cl * sin(lon);
+    img.y = img.y * sinc(lat) - s * h * sin(lat);
+    img.z = s * sag + h * cc;
+  }
+
+  // 2. du nuage dispersé à l'image (sans mouvement réduit : les points restent en place et s'allument)
+  vec3 scatter = (aRand.yzw - 0.5) * vec3(60.0, 40.0, 40.0);
+  vec3 pos = mix(img, mix(scatter, img, m), uMotion);
   pos += (aRand.yzw - 0.5) * vec3(6.0, 6.0, 10.0) * burst;
-  float cell = mix(aFrom.w, aTo.w, m);
-  vec4 col = mix(aColFrom, aColTo, m);
-  col.rgb = clamp((col.rgb - 0.5) * uContrast + 0.5, 0.0, 1.0);
-  vec2 toneRaw = mix(aToneFrom, aToneTo, m);
+  float cell = aPos.w * mix(0.3, 1.0, m);
+
+  vec4 col = vec4(clamp((aCol.rgb - 0.5) * uContrast + 0.5, 0.0, 1.0), aCol.a);
+  vec2 toneRaw = aTone;
   // fumée : les points restent fixes, l'image se déforme en volutes dessous ; plus forte sous la souris
-  float baseOffEarly = mix(aOffFrom, aOffTo, m);
-  float kEarly = (uCamZ + baseOffEarly + uPush) / uCamZ;
-  float hoverF = smoothstep(uMouseRadius * 1.6 * kEarly, 0.0, length(pos.xy - uMouse.xy * kEarly)) * uMotion;
+  float kEarly = (uCamZ + off) / uCamZ;
+  float hoverF = smoothstep(uMouseRadius * 1.6 * kEarly, 0.0, length(img.xy - uMouse.xy * kEarly)) * uMotion;
   float amt = uAnim + hoverF * uSmokeHover;
-  if (amt > 0.001 && aColTo.a > 0.0) {
+  if (amt > 0.001 && aCol.a > 0.0) {
     float ta = uTime * uAnimSpeed;
     vec4 c0 = texture2D(uImage, aUv.xy);
     vec3 sm = smoke(aUv.xy, ta + hoverF * 2.0);
@@ -131,32 +154,9 @@ void main() {
     // couvertures de projet (papier transparent, seule l'encre est visible) : la fumée déplace aussi l'encre
     col.a = clamp(col.a - step(aUv.z, -0.5) * dl, 0.0, 1.0);
   }
-  vec2 tone = clamp((toneRaw - 0.5) * uContrast + 0.5, 0.0, 1.0);
-  float baseOff = mix(aOffFrom, aOffTo, m);
-  float off = baseOff + uPush;
-
-  // courbure : l'image n'est plus un plan parallèle à l'écran
-  float scaleAtDepth = (uCamZ + baseOff) / uCamZ;
-  if (baseOff > 0.5) {
-    // images plein écran reculées (accueil, contact) : courbure douce, calée sur l'écran
-    vec2 q = pos.xy / (uViewH * 0.5 * scaleAtDepth);
-    pos.z += uCurve * dot(q, q) * 12.0 * scaleAtDepth;
-  } else if (abs(uCurve) > 0.001) {
-    // images de projet : l'image s'enroule sur une sphère sans être déformée ;
-    // au maximum elle forme une boule, quel que soit son format (rayon tiré de ses dimensions)
-    float t = clamp(abs(uCurve) / 1.5, 0.0, 1.0);
-    float s = sign(uCurve);
-    float R = max(uImgHalf.x / 3.14159, uImgHalf.y / 1.5708) / t;
-    float h = pos.z; // relief : porté le long de la normale de la sphère
-    float lon = pos.x / R;
-    float lat = pos.y / R;
-    float cl = cos(lat);
-    float cc = cl * cos(lon);
-    float sag = pos.y * halfVers(lat) + cl * pos.x * halfVers(lon); // R·(1 − cos lat · cos lon)
-    pos.x = pos.x * sinc(lon) * cl - s * h * cl * sin(lon);
-    pos.y = pos.y * sinc(lat) - s * h * sin(lat);
-    pos.z = s * sag + h * cc;
-  }
+  // présence : contraste appliqué à l'image formée, puis allumage progressif du point
+  vec2 tone = clamp((toneRaw - 0.5) * uContrast + 0.5, 0.0, 1.0) * m;
+  col.a *= m;
 
   // légère respiration
   float t = uTime * 0.5;
@@ -180,7 +180,7 @@ void main() {
   // une cellule couvre sa place dans la grille : l'image reste continue
   gl_PointSize = max(1.5, cell * uSizeFactor * uScreenScale / -mv.z);
   vSize = gl_PointSize;
-  vCell = floor(aTo.xy / max(aTo.w, 1e-5) + 0.5);
+  vCell = floor(aPos.xy / max(aPos.w, 1e-5) + 0.5);
 
   // monochrome / couleurs / monochrome bleu (comme les couvertures de projet)
   float mono = mix(tone.x, tone.y, uLight);

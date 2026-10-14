@@ -538,8 +538,12 @@ body {
 
 .contact {
   text-shadow: 0 0 22px rgb(0 0 0 / 0.55);
-  min-height: 90vh;
-  padding: 24vh var(--edge) 8vh; /* contenu légèrement plus bas dans l'écran */
+  /* dernière section, haute d'un écran : tout en bas de la page, le contact est au centre de l'écran */
+  min-height: 100vh;
+  min-height: 100svh;
+  box-sizing: border-box;
+  margin-top: 20vh; /* la page s'allonge vers le bas pour amener le contact au centre */
+  padding: 8vh var(--edge);
   display: flex;
   flex-direction: column;
   justify-content: center;
