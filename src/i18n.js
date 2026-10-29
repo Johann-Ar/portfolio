@@ -48,7 +48,7 @@ export const ui = {
   next: L('Projet suivant', 'Next project'),
   keepScrolling: L('Continuez à défiler', 'Keep scrolling'),
   close: L('Fermer', 'Close'),
-  playFilm: L('Lire le film', 'Play the film'),
+  playFilm: L('Voir le film', 'Watch the film'),
   playVideo: L('Lire la vidéo', 'Play the video'),
   description: L(
     'Johann Arata, designer numérique : captation du réel, volumes et espaces 3D à parcourir, 3D temps réel.',

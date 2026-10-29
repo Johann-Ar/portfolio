@@ -18,7 +18,11 @@ export const site = {
   role: L('Designer numérique, captation & 3D temps réel', 'Digital designer, capture & real-time 3D'),
   location: 'France',
   email: 'arata.johann@gmail.com',
-  phone: '+33 7 71 70 25 85',
+  // le téléphone n'est pas publié sur le site (CV et e-mails de candidature uniquement)
+  contactCredit: L(
+    'Image : Thomas Gainsborough, View near King’s Bromley-on-Trent (vers 1770), domaine public.',
+    'Image: Thomas Gainsborough, View near King’s Bromley-on-Trent (c. 1770), public domain.',
+  ),
   intro: L(
     'Designer numérique. Je capte le réel et le transforme en volumes et en espaces 3D à parcourir.',
     'Digital designer. I capture the real world and turn it into volumes and 3D spaces to explore.',
@@ -53,8 +57,8 @@ export const about = [
     'I’m a digital designer, studying for a **master’s in Design – Digital Environments** at the Faculty of Arts in Strasbourg, after a three-year design degree (DNMADe).',
   ),
   L(
-    'Je travaille à partir du **réel** : je le capte — photographie, vidéo, données — puis je le reconstruis en **volumes** et en **espaces 3D à parcourir**, que je développe moi-même en temps réel, jusqu’au dispositif interactif. Je distingue ce qui relève de la **captation**, de la **reconstruction** et de l’**estimation** (profondeur estimée par IA, Gaussian splatting).',
-    'I work from the **real world**: I capture it — photography, video, data — then rebuild it as **volumes** and **3D spaces to explore**, which I develop myself in real time, through to interactive installations. I keep a clear line between **capture**, **reconstruction** and **estimation** (AI depth estimation, Gaussian splatting).',
+    'Je travaille à partir du **réel** : je le capte — photographie, vidéo, données — puis je le reconstruis en **volumes** et en **espaces 3D à parcourir**, que je développe moi-même en temps réel, jusqu’au dispositif interactif. Je distingue ce qui relève de la **captation** (ce que j’enregistre moi-même), de la **reconstruction** (Gaussian splatting) et de l’**estimation** (profondeur estimée par IA).',
+    'I work from the **real world**: I capture it — photography, video, data — then rebuild it as **volumes** and **3D spaces to explore**, which I develop myself in real time, through to interactive installations. I keep a clear line between **capture** (what I record myself), **reconstruction** (Gaussian splatting) and **estimation** (AI depth estimation).',
   ),
   L(
     'Je cherche un **stage en 3D temps réel, captation volumétrique ou design interactif**.',
@@ -69,7 +73,6 @@ export const timeline = [
       { year: '2026 —', name: L('Master Design – Environnements numériques', 'Master’s in Design – Digital Environments'), detail: L('Faculté des arts, Université de Strasbourg', 'Faculty of Arts, University of Strasbourg') },
       { year: '2025 — 26', name: L('Année de césure', 'Gap year'), detail: L('Projets personnels autour des milieux naturels', 'Personal projects on natural environments') },
       { year: '2022 — 25', name: L('DNMADe Design numérique', 'DNMADe in Digital Design'), detail: L('Lycée René Goscinny, Drap', 'Three-year design degree, Lycée René Goscinny, Drap') },
-      { year: '2019 — 22', name: L('Baccalauréat général', 'French baccalaureate'), detail: 'Lycée La Saulaie' },
     ],
   },
   {
@@ -104,7 +107,7 @@ export const projects = [
     slug: 'dumbo',
     title: 'Dumbo',
     year: '2026',
-    tag: L('Three.js, IA', 'Three.js, AI'),
+    tag: L('Grands fonds, galerie 3D', 'Deep sea, 3D gallery'),
     cloud: 'dumbo/cover.webp',
     text: L(
       'Des vidéos de grands fonds du Schmidt Ocean Institute deviennent des volumes à parcourir. L’IA isole les créatures, la lumière de chaque pixel lui donne sa profondeur. On circule ensuite dans une galerie, à la première personne, pour approcher une créature abyssale comme une sculpture.',
@@ -134,7 +137,7 @@ export const projects = [
     slug: 'photographique-volume',
     title: 'Photographique Volume',
     year: '2025 — 26',
-    tag: L('Three.js, son', 'Three.js, sound'),
+    tag: L('Photographie sous-marine, paysages 3D', 'Underwater photography, 3D landscapes'),
     cloud: 'photographique-volume/cover.webp',
     text: L(
       'Les photographies sous-marines de Nicolas Floc’h, prises dans les Calanques, deviennent des paysages 3D. L’IA reconstruit la profondeur, la lumière de l’image l’affine. Deux séries se croisent : « Invisible » donne la forme, « La Couleur de l’eau » la couleur. Sept images, du rivage vers le large.',
@@ -164,7 +167,7 @@ export const projects = [
     slug: '4derives',
     title: '4Dérives',
     year: '2025 — 26',
-    tag: L('Film, 3D', 'Film, 3D'),
+    tag: L('Rivière, film et 4D Gaussian splatting', 'River, film and 4D Gaussian splatting'),
     cloud: '4derives/cover.webp',
     text: L(
       'Une descente de rivière filmée en GoPro à hauteur d’yeux, en trois saisons : automne, hiver, printemps. L’étalonnage, la musique et le rythme font les variations. Des essais en 4D Gaussian Splatting prolongent l’espace hors du cadre, et montrent les limites des outils accessibles aujourd’hui.',
@@ -193,7 +196,7 @@ export const projects = [
     slug: 'mondes-immerges',
     title: 'Mondes Immergés',
     year: '2024 — 25',
-    tag: L('Recherche', 'Research'),
+    tag: L('Article de recherche', 'Research paper'),
     cloud: 'mondes-immerges/cover.webp',
     text: L(
       'Article de recherche de DNMADe : comment le design immersif peut-il rendre sensibles des milieux aquatiques qui se dégradent ? Il croise écologie et représentation visuelle, analyse des dispositifs existants et propose des expérimentations graphiques. Il pose les bases des projets qui ont suivi.',

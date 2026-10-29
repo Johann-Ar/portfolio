@@ -314,9 +314,6 @@ body {
   .topbar__nav {
     gap: 0.9rem;
   }
-  .topbar__nav a[href='#a-propos'] {
-    display: none; /* mobile : Projets et Contact seulement */
-  }
 }
 
 /* lien d'évitement (clavier) : visible seulement au focus */
@@ -492,7 +489,7 @@ body {
   color: var(--muted);
 }
 .work__list.has-selection .work-link {
-  opacity: 0.35;
+  opacity: 0.62; /* lisible même non survolé */
 }
 .work__list.has-selection .work-link.is-active,
 .work-link:hover,
@@ -637,13 +634,7 @@ body {
   font-size: clamp(1.1rem, 1.7vw, 1.6rem);
   font-weight: 600;
 }
-.contact__phone {
-  margin-top: 0.6rem;
-  font-size: 1rem;
-  font-weight: 600;
-}
 .contact__mail,
-.contact__phone,
 .case__link {
   position: relative;
   display: inline-block;
@@ -654,14 +645,12 @@ body {
   vertical-align: bottom;
 }
 .contact__mail span,
-.contact__phone span,
 .case__link span {
   position: relative;
   z-index: 1;
   transition: color 0.2s var(--ease);
 }
 .contact__mail::before,
-.contact__phone::before,
 .case__link::before {
   content: '';
   position: absolute;
@@ -672,16 +661,12 @@ body {
 }
 .contact__mail:hover::before,
 .contact__mail:focus-visible::before,
-.contact__phone:hover::before,
-.contact__phone:focus-visible::before,
 .case__link:hover::before,
 .case__link:focus-visible::before {
   transform: translateX(0);
 }
 .contact__mail:hover span,
 .contact__mail:focus-visible span,
-.contact__phone:hover span,
-.contact__phone:focus-visible span,
 .case__link:hover span,
 .case__link:focus-visible span {
   color: var(--bg);
@@ -878,12 +863,14 @@ body {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-end; /* en bas à gauche : ne recouvre pas le titre de l'image, jamais coupé par le bord */
+  justify-content: flex-start;
   width: 100%;
+  padding: 24px;
 }
 .media__play span {
-  padding: 1rem 1.6rem;
+  padding: 0.7rem 1.2rem;
+  font-size: 0.8rem;
   border-radius: 999px;
   background: rgb(255 255 255 / 0.92);
   color: #000;
@@ -1338,4 +1325,14 @@ html.case-open {
 }
 .has-bagherich :is(.hero__name, .section-title, .skills__row, .case__title-wrapper h1, .case__next strong, .loader__count) {
   font-synthesis: none;
+}
+
+/* contact : crédit de l'image de fond */
+.contact__credit {
+  margin-top: 2.4rem;
+  max-width: 46ch;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  color: var(--muted);
 }

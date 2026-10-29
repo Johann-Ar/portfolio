@@ -89,7 +89,6 @@ export const appHtml = () => `
     <h2 class="section-title section-title--center reveal" id="contact-title">Contact</h2>
     <a class="contact__mail reveal notranslate" translate="no" href="mailto:${esc(site.email)}"><span>${esc(site.email)}</span></a>
     <span class="contact__copied" role="status" aria-live="polite"></span>
-    <a class="contact__phone reveal" href="tel:${esc(site.phone.replace(/\s/g, ''))}"><span>${esc(site.phone)}</span></a>
     <ul class="socials reveal">
       ${site.socials
         .map(
@@ -98,5 +97,6 @@ export const appHtml = () => `
         )
         .join('')}
     </ul>
+    <p class="contact__credit reveal">${esc(tr(site.contactCredit))}</p>
   </section>
 `
