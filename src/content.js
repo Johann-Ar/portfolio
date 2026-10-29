@@ -143,8 +143,8 @@ export const allProjects = [
   },
   {
     slug: 'photographique-volume',
-    // publié seulement avec l'accord écrit de Nicolas Floc'h (passer à false une fois l'accord obtenu)
-    rightsPending: true,
+    // remis en ligne à la demande de Johann ; accord écrit de Nicolas Floc'h à obtenir
+    rightsPending: false,
     title: 'Photographique Volume',
     year: '2025 — 26',
     tag: L('Photographie sous-marine, paysages 3D', 'Underwater photography, 3D landscapes'),
