@@ -39,7 +39,6 @@ export const skills = [
   'WebGL',
   'Shaders',
   'Gaussian Splatting',
-  L('IA pour l’image', 'AI imaging'),
   'JavaScript',
   'React',
   L('Vidéo', 'Video'),
