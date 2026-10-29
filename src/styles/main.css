@@ -6,8 +6,19 @@
    Titres : Bricolage Grotesque (variable, taille optique) · Texte : Figtree · Étiquettes : IBM Plex Mono
 ------------------------------------------------------------------- */
 
+/*
+ * Bagherich (typo identitaire) : utilisée si elle est installée sur l'ordinateur.
+ * Pour tous les visiteurs, déposer le fichier web (src/fonts/Bagherich.woff2, si la licence le permet)
+ * et ajouter sa ligne url() ci-dessous. Sinon : Bricolage Grotesque.
+ */
+@font-face {
+  font-family: 'Bagherich';
+  src: local('Bagherich'), local('Bagherich Regular'), local('Bagherich-Regular');
+  font-display: swap;
+}
+
 :root {
-  --font-display: 'Bricolage Grotesque Variable', 'Figtree', system-ui, sans-serif;
+  --font-display: 'Bagherich', 'Bricolage Grotesque Variable', 'Figtree', system-ui, sans-serif;
   --display-weight: 560;
   --display-track: -0.02em;
   --nav-size: 0.95rem;
@@ -1314,4 +1325,17 @@ html.case-open {
     transform: none;
     transition: none;
   }
+}
+
+/* Bagherich présente : sa graisse et son approche d'origine (pas de faux gras ni d'espacement resserré) */
+.has-bagherich {
+  --display-weight: 400;
+  --display-track: 0em;
+}
+.has-bagherich .hero__name,
+.has-bagherich .skills__row {
+  letter-spacing: 0;
+}
+.has-bagherich :is(.hero__name, .section-title, .skills__row, .case__title-wrapper h1, .case__next strong, .loader__count) {
+  font-synthesis: none;
 }

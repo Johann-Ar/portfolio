@@ -5,6 +5,7 @@
 
 const KEY = 'lang'
 const read = () => {
+  if (typeof window === 'undefined') return 'fr' // rendu à la compilation (HTML publié en français)
   const q = new URLSearchParams(location.search).get('lang')
   if (q === 'fr' || q === 'en') return q
   try {

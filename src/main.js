@@ -10,6 +10,7 @@ import { site, skills, about, timeline, projects } from './content.js'
 import { CaseView } from './case.js'
 import { ProfileStore } from './webgl/settings.js'
 import { lang, tr, ui, setLang, onLang } from './i18n.js'
+import { appHtml, esc, bold, rows, rowHtml, metaText, timelineCol } from './render.js'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -36,9 +37,6 @@ window.scrollTo(0, 0)
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const isTouch = !window.matchMedia('(hover: hover)').matches
 const isSmall = () => window.matchMedia('(max-width: 768px)').matches
-const esc = (str = '') =>
-  str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
-const bold = (str) => esc(str).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
 
 const root = document.documentElement
 const POINTS_COLOR = '#ffffff'
@@ -48,97 +46,8 @@ let cloud = null
    Rendu
 ------------------------------------------------------------------- */
 
-// les compétences, réparties en lignes qui défilent en continu, en sens opposés
-const rows = [[], [], []]
-skills.forEach((s, i) => rows[i % rows.length].push(s))
-// une ligne = son texte répété deux fois (boucle sans raccord) ; la copie est ignorée par les lecteurs d'écran
-const rowText = (row) => row.map((w) => `${tr(w)}, `).join('')
-const rowHtml = (row) => `<span>${esc(rowText(row))}</span><span aria-hidden="true">${esc(rowText(row))}</span>`
-const metaText = (p) => `// ${tr(p.tag)}`
-const timelineCol = (col) => `
-          <h3>${esc(tr(col.title))}</h3>
-          <ul>
-            ${col.items
-              .map(
-                (it) => `<li>
-                  <span class="timeline__year">${esc(tr(it.year))}</span>
-                  <span><b>${esc(tr(it.name))}</b>${tr(it.detail) ? `<br />${esc(tr(it.detail))}` : ''}</span>
-                </li>`,
-              )
-              .join('')}
-          </ul>`
-
 const app = document.getElementById('app')
-app.innerHTML = `
-  <section class="hero" id="top" data-cloud="hero">
-    <div class="hero__content">
-      <h1 class="hero__name">
-        <span class="u-visually-hidden"><span translate="no">${esc(site.name)}</span>, <span data-t="role">${esc(tr(ui.role))}</span></span>
-        <span class="hero__line notranslate" translate="no" aria-hidden="true">${[...site.name].map((c, i) => (c === ' ' ? ' ' : `<span class="ch" style="--i:${i}">${esc(c)}</span>`)).join('')}</span>
-      </h1>
-      <p class="hero__intro words" data-words>${esc(tr(site.intro))}</p>
-    </div>
-    <span class="hero__scroll" aria-hidden="true" data-t="scroll">${esc(tr(ui.scroll))}</span>
-  </section>
-
-  <section class="work" id="projets" data-cloud="project" aria-labelledby="work-title">
-    <div class="work__pin">
-    <div class="work__stage" aria-hidden="true"></div>
-    <div class="work__inner">
-      <h2 class="section-title reveal" id="work-title" data-t="workTitle">${esc(tr(ui.workTitle))}</h2>
-      <ul class="work__list">
-        ${projects
-          .map(
-            (p, i) => `
-          <li class="reveal" style="--i:${i}">
-            <a class="work-link" href="#/${p.slug}" data-slug="${p.slug}">
-              <b translate="no">${esc(p.title)}</b>
-              <span class="work-link__meta">${esc(metaText(p))}</span>
-            </a>
-          </li>`,
-          )
-          .join('')}
-      </ul>
-    </div>
-    </div>
-  </section>
-
-  <section class="skills" aria-label="${esc(tr(ui.skills))}" data-cloud="none">
-    ${rows.map((row, i) => `<p class="skills__row" data-dir="${i % 2 ? -1 : 1}">${rowHtml(row)}</p>`).join('')}
-  </section>
-
-  <section class="about" id="a-propos" data-cloud="none" aria-labelledby="about-title">
-    <h2 class="section-title section-title--center reveal" id="about-title" data-t="about">${esc(tr(ui.about))}</h2>
-    <div class="about__text">
-      ${about.map((p) => `<p class="words" data-words>${bold(tr(p))}</p>`).join('')}
-    </div>
-    <div class="timeline">
-      ${timeline
-        .map(
-          (col, i) => `
-        <div class="reveal" style="--i:${i}">${timelineCol(col)}
-        </div>`,
-        )
-        .join('')}
-    </div>
-  </section>
-
-  <section class="contact" id="contact" data-cloud="contact" data-cloud-opacity="0.6" aria-labelledby="contact-title">
-    <h2 class="section-title section-title--center reveal" id="contact-title">Contact</h2>
-    <a class="contact__mail reveal notranslate" translate="no" href="mailto:${esc(site.email)}"><span>${esc(site.email)}</span></a>
-    <span class="contact__copied" role="status" aria-live="polite"></span>
-    <a class="contact__phone reveal" href="tel:${esc(site.phone.replace(/\s/g, ''))}"><span>${esc(site.phone)}</span></a>
-    <ul class="socials reveal">
-      ${site.socials
-        .map(
-          (s) =>
-            `<li><a href="${esc(s.href)}" ${s.href.startsWith('http') ? 'target="_blank" rel="noopener"' : ''}>${esc(s.label)}</a></li>`,
-        )
-        .join('')}
-    </ul>
-  </section>
-
-`
+app.innerHTML = appHtml() // même rendu que le HTML pré-généré à la compilation (src/render.js)
 
 /* Découpe en mots pour l'apparition mot à mot */
 function splitWords(el) {
@@ -600,15 +509,25 @@ function animateLoader() {
   if (shown < 1) requestAnimationFrame(animateLoader)
 }
 requestAnimationFrame(animateLoader)
-document.fonts.ready.then(() => (goal = Math.max(goal, 0.6)))
+document.fonts.ready.then(() => {
+  goal = Math.max(goal, 0.6)
+  // typo identitaire Bagherich (si installée ou fournie) : réglages typographiques adaptés
+  document.fonts
+    .load('48px Bagherich')
+    .then((faces) => faces.some((f) => f.family.replace(/["']/g, '') === 'Bagherich') && root.classList.add('has-bagherich'))
+    .catch(() => {})
+})
 
-Promise.all([
-  document.fonts.ready,
-  initCloud().catch((err) => {
+// le chargement ne dure jamais plus de ~2 s : si la 3D est plus lente, la page s'ouvre et l'image arrive ensuite
+const cloudReady = initCloud()
+  .catch((err) => {
     console.warn('WebGL indisponible', err)
     root.classList.add('no-webgl')
-  }),
-  minTime,
+  })
+  .then(() => stageReady && updateCloud())
+Promise.race([
+  Promise.all([document.fonts.ready, cloudReady, minTime]),
+  new Promise((r) => setTimeout(r, 2000)),
 ]).then(() => {
   goal = 1
   setTimeout(

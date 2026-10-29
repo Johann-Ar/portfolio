@@ -1,5 +1,6 @@
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { defineConfig } from 'vite'
 
 /**
@@ -27,10 +28,30 @@ function localSplats() {
   }
 }
 
+/** Adresse publique du site (aperçus de liens : image de partage, URL canonique). */
+const SITE_URL = (process.env.SITE_URL || 'https://johann-ar.github.io/portfolio/').replace(/\/?$/, '/')
+
+/**
+ * Contenu pré-rendu : les sections (src/render.js) sont écrites directement dans le HTML publié,
+ * lisibles sans JavaScript ; les métadonnées de partage reçoivent des adresses complètes.
+ */
+function prerender() {
+  return {
+    name: 'prerender',
+    async transformIndexHtml(html) {
+      const { appHtml } = await import(`${pathToFileURL(resolve('src/render.js')).href}?t=${Date.now()}`)
+      return html
+        .replace('<main id="app"></main>', `<main id="app">${appHtml()}</main>`)
+        .replace('content="share.jpg"', `content="${SITE_URL}share.jpg"`)
+        .replace('</head>', `  <link rel="canonical" href="${SITE_URL}" />\n    <meta property="og:url" content="${SITE_URL}" />\n    <meta name="twitter:image" content="${SITE_URL}share.jpg" />\n  </head>`)
+    },
+  }
+}
+
 // base relative : le site fonctionne sur GitHub Pages (/portfolio/) comme sur un domaine perso.
 export default defineConfig({
   base: './',
-  plugins: [localSplats()],
+  plugins: [localSplats(), prerender()],
   build: {
     target: 'es2022',
     assetsInlineLimit: 0,
