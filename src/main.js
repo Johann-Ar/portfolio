@@ -10,25 +10,11 @@ import { site, skills, about, timeline, projects } from './content.js'
 import { CaseView } from './case.js'
 import { ProfileStore } from './webgl/settings.js'
 import { lang, tr, ui, setLang, onLang } from './i18n.js'
+import { DEV } from './dev.js'
 import { appHtml, esc, bold, rows, rowHtml, metaText, timelineCol } from './render.js'
 
 const BASE = import.meta.env.BASE_URL
 
-/*
- * Mode développement (`?dev`, mémorisé ; `?dev=0` pour le quitter ; toujours actif avec `npm run dev`) :
- * panneau de réglages (P), touches Espace / B / V, volumétrie SHARP, élément en verre, ancien rendu de l'accueil.
- * En ligne, le visiteur ne charge que le site, avec les réglages par défaut.
- */
-const DEV = (() => {
-  const q = new URLSearchParams(location.search).get('dev')
-  try {
-    if (q === '0') localStorage.removeItem('dev')
-    else if (q !== null) localStorage.setItem('dev', '1')
-    return import.meta.env.DEV || localStorage.getItem('dev') === '1'
-  } catch {
-    return import.meta.env.DEV || (q !== null && q !== '0')
-  }
-})()
 
 // au lancement, on arrive toujours sur l'accueil (pas de reprise de scroll ni d'ancre de section)
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
@@ -39,6 +25,7 @@ const isTouch = !window.matchMedia('(hover: hover)').matches
 const isSmall = () => window.matchMedia('(max-width: 768px)').matches
 
 const root = document.documentElement
+root.classList.toggle('is-dev', DEV) // marqueurs « à compléter » visibles en mode développement seulement
 const POINTS_COLOR = '#ffffff'
 let cloud = null
 

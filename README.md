@@ -9,7 +9,7 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
   ne relie deux images : l'image affichée disparaît entièrement (points qui se dispersent et s'éteignent,
   l'apparition jouée à l'envers), puis la suivante apparaît seule, avec ses réglages ; l'habillage de la page
   (calque couleurs, vignettage) suit l'image visible (`src/webgl/PointCloud.js`) ;
-- « splat » : chaque image devient une grille de points (un par pixel échantillonné), avec sa couleur ;
+- nuage de points (ce n'est pas du Gaussian splatting) : chaque image devient une grille de points (un par pixel échantillonné), avec sa couleur ;
   **la luminance détermine la profondeur**. Touche **Espace** : monochrome → couleurs → monochrome bleu ; **B** : ancien rendu de l'accueil ; **P** : panneau de réglages
   (taille des points, relief, distance, courbure, opacité, contraste, luminosité, saturation, fumée, souris, parallaxe — mémorisés dans le navigateur) ;
 - fumée (panneau P) : les points restent fixes, l'image se déforme en volutes de fumée dessous (fbm + domain warping),
@@ -23,12 +23,18 @@ Structure inspirée de [dorianlods.com](https://www.dorianlods.com/) ; les fiche
   (rose bonbon `#FF98E5`, bleu lavande `#B2A3E9`, vert menthe `#98DDBE`, rose corail `#F799AB`) ;
 - accueil et contact : images passées en niveaux de gris hors du site (`scripts/grayscale.py` : sources et volumes SHARP) ;
 - raccourcis (Espace, B, V, P) actifs mais non affichés ;
-- contact : splat du tableau de Thomas Gainsborough, *View near King's Bromley-on-Trent* ;
+- contact : nuage de points du tableau de Thomas Gainsborough, *View near King's Bromley-on-Trent* ;
 - mobile et tactile : nuage atténué et décalé sous la liste des projets, fiche projet en colonne (aussi sur tablette
   en portrait), pas de « souris fantôme » après un toucher, raccourcis clavier masqués ;
 - français / anglais : bouton FR / EN en haut à droite (seul élément de la barre du haut) (langue du navigateur par défaut, choix mémorisé,
   `?lang=en` force l'anglais) ; les textes changent sur place sans recharger la 3D ;
 - typos libres : Bricolage Grotesque variable (titres, taille optique), Figtree (texte), IBM Plex Mono (étiquettes).
+
+## Droits et projets en attente
+
+Un projet marqué `rightsPending: true` dans `src/content.js` (aujourd'hui : Photographique Volume, en attente de
+l'accord écrit de Nicolas Floc'h) n'apparaît ni dans le HTML publié ni sur le site public ; il reste visible en mode
+développement. Les textes marqués `TODO(...)` (« [À COMPLÉTER PAR JOHANN] ») ne s'affichent qu'en mode développement.
 
 ## Mode développement
 
@@ -58,7 +64,7 @@ Tout est dans **`src/content.js`** : textes, ordre des projets, galeries, liens,
 | ajouter / réordonner un projet   | tableau `projects` dans `src/content.js`        |
 | changer l'image du nuage d'un projet | champ `cloud` du projet (couverture du portfolio) |
 | changer les couleurs, typos      | variables en haut de `src/styles/main.css` (`--font-display` pour la typo des titres) |
-| régler le splat (points, profondeur) | `src/webgl/targets.js`, `src/webgl/PointCloud.js` |
+| régler le nuage de points (points, profondeur) | `src/webgl/targets.js`, `src/webgl/PointCloud.js` |
 
 ## Ajouter des images
 

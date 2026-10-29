@@ -1336,3 +1336,14 @@ html.case-open {
   letter-spacing: 0.03em;
   color: var(--muted);
 }
+
+/* textes à fournir par Johann : visibles en mode développement uniquement */
+.todo {
+  display: none !important;
+}
+.is-dev .todo {
+  display: revert !important;
+  color: #ffb36b;
+  outline: 1px dashed #ffb36b;
+  outline-offset: 4px;
+}

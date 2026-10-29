@@ -111,7 +111,7 @@ export class CaseView {
             ${project.infos
               .map(
                 ([k, v]) =>
-                  `<p class="info-item"><span class="info-category">${esc(tr(k))}${lang === 'fr' ? ' :' : ':'}</span><b>//</b><span class="info-value">${esc(tr(v))}</span></p>`,
+                  `<p class="info-item${v?.todo ? ' todo' : ''}"><span class="info-category">${esc(tr(k))}${lang === 'fr' ? ' :' : ':'}</span><b>//</b><span class="info-value">${esc(tr(v))}</span></p>`,
               )
               .join('')}
             ${

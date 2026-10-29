@@ -12,6 +12,10 @@
  */
 
 import { L } from './i18n.js'
+import { DEV } from './dev.js'
+
+/** Texte à fournir par Johann : visible en mode développement uniquement, jamais publié. */
+export const TODO = (fr, en = fr) => ({ todo: true, fr: `[À COMPLÉTER PAR JOHANN] ${fr}`, en: `[TO BE COMPLETED BY JOHANN] ${en}` })
 
 export const site = {
   name: 'Johann Arata',
@@ -100,9 +104,11 @@ const CONTEXT = L('Cadre', 'Context')
 const TOOLS = L('Outils', 'Tools')
 const YEAR = L('Année', 'Year')
 const SOURCES = L('Sources', 'Sources')
+const CREDITS = L('Crédits', 'Credits')
 const OPEN = L('Ouvrir le projet', 'Open the project')
 
-export const projects = [
+/** Tous les projets ; ceux en attente d'accord de droits ne sont visibles qu'en mode développement. */
+export const allProjects = [
   {
     slug: 'dumbo',
     title: 'Dumbo',
@@ -110,14 +116,16 @@ export const projects = [
     tag: L('Grands fonds, galerie 3D', 'Deep sea, 3D gallery'),
     cloud: 'dumbo/cover.webp',
     text: L(
-      'Des vidéos de grands fonds du Schmidt Ocean Institute deviennent des volumes à parcourir. L’IA isole les créatures, la lumière de chaque pixel lui donne sa profondeur. On circule ensuite dans une galerie, à la première personne, pour approcher une créature abyssale comme une sculpture.',
-      'Deep-sea footage from the Schmidt Ocean Institute turned into volumes you can walk around. AI isolates the creatures; the brightness of each pixel gives it depth. You then move through a first-person gallery and approach a deep-sea creature like a sculpture.',
+      'Des vidéos de grands fonds du Schmidt Ocean Institute deviennent des volumes à parcourir. Une IA de segmentation (SAM2) isole les créatures ; la luminosité de chaque pixel lui donne sa profondeur, comme une carte de profondeur. On circule ensuite dans une galerie, à la première personne, pour approcher une créature abyssale comme une sculpture.',
+      'Deep-sea footage from the Schmidt Ocean Institute turned into volumes you can walk around. A segmentation AI (SAM2) isolates the creatures; the brightness of each pixel sets its depth, like a depth map. You then move through a first-person gallery and approach a deep-sea creature like a sculpture.',
     ),
     infos: [
       [CONTEXT, personal],
       [SOURCES, L('Vidéos de submersibles, Schmidt Ocean Institute', 'Submersible footage, Schmidt Ocean Institute')],
       [TOOLS, 'Three.js, WebGL, SAM2'],
       [YEAR, '2026'],
+      [CREDITS, L('Vidéos : Schmidt Ocean Institute', 'Footage: Schmidt Ocean Institute')],
+      [CREDITS, TODO('mention exacte exigée par la licence du Schmidt Ocean Institute', 'exact wording required by the Schmidt Ocean Institute licence')],
     ],
     link: { label: OPEN, href: 'https://holosene.github.io/dumbo-biovolume/' },
     media: [
@@ -135,19 +143,22 @@ export const projects = [
   },
   {
     slug: 'photographique-volume',
+    // publié seulement avec l'accord écrit de Nicolas Floc'h (passer à false une fois l'accord obtenu)
+    rightsPending: true,
     title: 'Photographique Volume',
     year: '2025 — 26',
     tag: L('Photographie sous-marine, paysages 3D', 'Underwater photography, 3D landscapes'),
     cloud: 'photographique-volume/cover.webp',
     text: L(
-      'Les photographies sous-marines de Nicolas Floc’h, prises dans les Calanques, deviennent des paysages 3D. L’IA reconstruit la profondeur, la lumière de l’image l’affine. Deux séries se croisent : « Invisible » donne la forme, « La Couleur de l’eau » la couleur. Sept images, du rivage vers le large.',
-      'Nicolas Floc’h’s underwater photographs of the Calanques turned into 3D landscapes. AI rebuilds the depth, the light in the image refines it. Two series meet: “Invisible” gives the shape, “La Couleur de l’eau” the colour. Seven images, from the shore out to the open sea.',
+      'Les photographies sous-marines de Nicolas Floc’h, prises dans les Calanques, deviennent des paysages 3D. La profondeur est estimée par IA (Depth Anything V2), puis affinée par la lumière de l’image. Deux séries se croisent : « Invisible » donne la forme, « La Couleur de l’eau » la couleur. Sept images, du rivage vers le large.',
+      'Nicolas Floc’h’s underwater photographs of the Calanques turned into 3D landscapes. Depth is estimated by AI (Depth Anything V2), then refined by the light in the image. Two series meet: “Invisible” gives the shape, “La Couleur de l’eau” the colour. Seven images, from the shore out to the open sea.',
     ),
     infos: [
       [CONTEXT, personal],
       [SOURCES, L('Photographies de Nicolas Floc’h, Calanques, 2018 — 2020', 'Photographs by Nicolas Floc’h, Calanques, 2018 — 2020')],
       [TOOLS, 'Three.js, WebGL, Web Audio, Depth Anything V2'],
       [YEAR, '2025 — 2026'],
+      [CREDITS, L('Photographies © Nicolas Floc’h', 'Photographs © Nicolas Floc’h')],
     ],
     link: { label: OPEN, href: 'https://holosene.github.io/photographique-volume' },
     media: [
@@ -156,7 +167,7 @@ export const projects = [
       { src: 'photographique-volume/029.webp', alt: L('Volume photographique, état 01', 'Photographic volume, state 01') },
       { src: 'photographique-volume/030.webp', alt: L('Volume photographique, état 03', 'Photographic volume, state 03') },
       { src: 'photographique-volume/031.webp', alt: L('Volume photographique, état 07', 'Photographic volume, state 07') },
-      { src: 'photographique-volume/028.webp', alt: L('Profondeur reconstruite par l’IA et la lumière', 'Depth rebuilt from AI and light') },
+      { src: 'photographique-volume/028.webp', alt: L('Profondeur estimée par IA et par la lumière', 'Depth estimated by AI and from light') },
       { src: 'photographique-volume/027.webp', alt: L('Version colorisée', 'Coloured version') },
       { src: 'photographique-volume/017.webp', alt: L('Prototype : bloc photographique', 'Prototype: photographic block') },
       { src: 'photographique-volume/018.webp', alt: L('Prototype : photographie en particules', 'Prototype: photograph as particles') },
@@ -219,3 +230,5 @@ export const projects = [
     ],
   },
 ]
+
+export const projects = allProjects.filter((p) => !p.rightsPending || DEV)
