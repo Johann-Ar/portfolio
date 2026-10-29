@@ -34,7 +34,7 @@ export const onLang = (fn) => listeners.push(fn)
 
 /** Libellés de l'interface. */
 export const ui = {
-  role: L('Designer numérique, interface & interaction', 'Digital designer, interface & interaction'),
+  role: L('Designer numérique, captation & 3D temps réel', 'Digital designer, capture & real-time 3D'),
   nav: L('Navigation principale', 'Main navigation'),
   work: L('Projets', 'Work'),
   about: L('À propos', 'About'),
@@ -51,7 +51,7 @@ export const ui = {
   playFilm: L('Lire le film', 'Play the film'),
   playVideo: L('Lire la vidéo', 'Play the video'),
   description: L(
-    'Johann Arata, designer numérique : interfaces, expériences interactives et espaces 3D pour le web.',
-    'Johann Arata, digital designer: interfaces, interactive experiences and 3D spaces for the web.',
+    'Johann Arata, designer numérique : captation du réel, volumes et espaces 3D à parcourir, 3D temps réel.',
+    'Johann Arata, digital designer: real-world capture, volumes and explorable 3D spaces, real-time 3D.',
   ),
 }

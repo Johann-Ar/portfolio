@@ -15,13 +15,13 @@ import { L } from './i18n.js'
 
 export const site = {
   name: 'Johann Arata',
-  role: L('Designer numérique, interface & interaction', 'Digital designer, interface & interaction'),
+  role: L('Designer numérique, captation & 3D temps réel', 'Digital designer, capture & real-time 3D'),
   location: 'France',
   email: 'arata.johann@gmail.com',
   phone: '+33 7 71 70 25 85',
   intro: L(
-    'Designer numérique. Je conçois des interfaces, des expériences interactives et des espaces 3D pour le web.',
-    'Digital designer. I design interfaces, interactive experiences and 3D spaces for the web.',
+    'Designer numérique. Je capte le réel et le transforme en volumes et en espaces 3D à parcourir.',
+    'Digital designer. I capture the real world and turn it into volumes and 3D spaces to explore.',
   ),
   socials: [
     { label: 'Mail', href: 'mailto:arata.johann@gmail.com' },
@@ -49,16 +49,16 @@ export const skills = [
 
 export const about = [
   L(
-    'Designer numérique, je suis en **master Design numérique** à la Faculté des arts de Strasbourg, après un DNMADe Design numérique.',
-    'I’m a digital designer, studying for a **master’s in Digital Design** at the Faculty of Arts in Strasbourg, after a three-year design degree (DNMADe).',
+    'Designer numérique, je suis en **master Design – Environnements numériques** à la Faculté des arts de Strasbourg, après un DNMADe Design numérique.',
+    'I’m a digital designer, studying for a **master’s in Design – Digital Environments** at the Faculty of Arts in Strasbourg, after a three-year design degree (DNMADe).',
   ),
   L(
-    'Je conçois des **interfaces** et des **expériences interactives**, de l’intention au prototype fonctionnel, en les développant moi-même pour le web. Une part de mon travail part de **l’image** — photographie, vidéo, données — que je traduis en **espaces 3D** et en dispositifs à parcourir.',
-    'I design **interfaces** and **interactive experiences**, from intent to working prototype, and build them myself for the web. Part of my work starts from **images** — photography, video, data — which I translate into **3D spaces** and experiences people can move through.',
+    'Je travaille à partir du **réel** : je le capte — photographie, vidéo, données — puis je le reconstruis en **volumes** et en **espaces 3D à parcourir**, que je développe moi-même en temps réel, jusqu’au dispositif interactif. Je distingue ce qui relève de la **captation**, de la **reconstruction** et de l’**estimation** (profondeur estimée par IA, Gaussian splatting).',
+    'I work from the **real world**: I capture it — photography, video, data — then rebuild it as **volumes** and **3D spaces to explore**, which I develop myself in real time, through to interactive installations. I keep a clear line between **capture**, **reconstruction** and **estimation** (AI depth estimation, Gaussian splatting).',
   ),
   L(
-    'Je cherche un **stage en design d’interface, design interactif ou 3D temps réel**.',
-    'I’m looking for an **internship in interface design, interaction design or real-time 3D**.',
+    'Je cherche un **stage en 3D temps réel, captation volumétrique ou design interactif**.',
+    'I’m looking for an **internship in real-time 3D, volumetric capture or interaction design**.',
   ),
 ]
 
@@ -66,7 +66,7 @@ export const timeline = [
   {
     title: L('Formation', 'Education'),
     items: [
-      { year: '2026 —', name: L('Master Design numérique', 'Master’s in Digital Design'), detail: L('Faculté des arts, Université de Strasbourg', 'Faculty of Arts, University of Strasbourg') },
+      { year: '2026 —', name: L('Master Design – Environnements numériques', 'Master’s in Design – Digital Environments'), detail: L('Faculté des arts, Université de Strasbourg', 'Faculty of Arts, University of Strasbourg') },
       { year: '2025 — 26', name: L('Année de césure', 'Gap year'), detail: L('Projets personnels autour des milieux naturels', 'Personal projects on natural environments') },
       { year: '2022 — 25', name: L('DNMADe Design numérique', 'DNMADe in Digital Design'), detail: L('Lycée René Goscinny, Drap', 'Three-year design degree, Lycée René Goscinny, Drap') },
       { year: '2019 — 22', name: L('Baccalauréat général', 'French baccalaureate'), detail: 'Lycée La Saulaie' },
