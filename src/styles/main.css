@@ -611,12 +611,8 @@ body {
 
 .contact {
   text-shadow: 0 0 22px rgb(0 0 0 / 0.55);
-  /* dernière section, haute d'un écran : tout en bas de la page, le contact est au centre de l'écran */
-  min-height: 100vh;
-  min-height: 100svh;
-  box-sizing: border-box;
-  margin-top: 20vh; /* la page s'allonge vers le bas pour amener le contact au centre */
-  padding: 8vh var(--edge);
+  /* dernière section, sans image de fond, contenu remonté */
+  padding: 12vh var(--edge) 22vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1327,15 +1323,6 @@ html.case-open {
   font-synthesis: none;
 }
 
-/* contact : crédit de l'image de fond */
-.contact__credit {
-  margin-top: 2.4rem;
-  max-width: 46ch;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.03em;
-  color: var(--muted);
-}
 
 /* textes à fournir par Johann : visibles en mode développement uniquement */
 .todo {

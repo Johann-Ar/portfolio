@@ -85,7 +85,7 @@ export const appHtml = () => `
     </div>
   </section>
 
-  <section class="contact" id="contact" data-cloud="contact" data-cloud-opacity="0.6" aria-labelledby="contact-title">
+  <section class="contact" id="contact" data-cloud="none" aria-labelledby="contact-title">
     <h2 class="section-title section-title--center reveal" id="contact-title">Contact</h2>
     <a class="contact__mail reveal notranslate" translate="no" href="mailto:${esc(site.email)}"><span>${esc(site.email)}</span></a>
     <span class="contact__copied" role="status" aria-live="polite"></span>
@@ -97,6 +97,5 @@ export const appHtml = () => `
         )
         .join('')}
     </ul>
-    <p class="contact__credit reveal">${esc(tr(site.contactCredit))}</p>
   </section>
 `

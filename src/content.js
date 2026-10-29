@@ -23,10 +23,6 @@ export const site = {
   location: 'France',
   email: 'arata.johann@gmail.com',
   // le téléphone n'est pas publié sur le site (CV et e-mails de candidature uniquement)
-  contactCredit: L(
-    'Image : Thomas Gainsborough, View near King’s Bromley-on-Trent (vers 1770), domaine public.',
-    'Image: Thomas Gainsborough, View near King’s Bromley-on-Trent (c. 1770), public domain.',
-  ),
   intro: L(
     'Designer numérique. Je capte le réel et le transforme en volumes et en espaces 3D à parcourir.',
     'Digital designer. I capture the real world and turn it into volumes and 3D spaces to explore.',

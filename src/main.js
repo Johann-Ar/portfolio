@@ -169,8 +169,6 @@ async function initCloud() {
   cloud.register('hero', imageTarget(portrait, { ...far, focusX: 0.6 }))
   // mode développement, touche B : ancienne version (points répartis selon la lumière), toujours plein écran
   cloud.register('hero-old', sampledTarget(portrait, { distance: 34, depth: 14, invertDepth: true, focusX: 0.6 }))
-  // contact : Thomas Gainsborough, « View near King's Bromley-on-Trent » (domaine public)
-  cloud.register('contact', imageTarget(`${BASE}media/site/view-near.webp`, far))
   // projets : les couvertures du portfolio (imprimées sur fond blanc)
   for (const p of projects) cloud.register(p.slug, imageTarget(`${BASE}media/${p.cloud}`, { paper: true, size: 0.5, depth: 6 }))
   await cloud.preload('hero')
@@ -268,7 +266,7 @@ function updateCloud() {
     list.classList.toggle('has-selection', inWork)
   }
   // le panneau modifie les réglages de la section affichée
-  const profile = { top: 'hero', projets: 'project', contact: 'contact' }[section.id] || 'other'
+  const profile = { top: 'hero', projets: 'project' }[section.id] || 'other'
   panel.setProfile(profile)
   if (!cloud || !stageReady) return
 
@@ -529,7 +527,7 @@ Promise.race([
       route()
       const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1200))
       // les autres images se préparent une par une, aux moments creux (jamais toutes d'un coup pendant une transition)
-      const queue = [...projects.map((p) => p.slug), 'contact']
+      const queue = projects.map((p) => p.slug)
       const next = () => queue.length && cloud?.preload(queue.shift()).then(() => idle(next))
       idle(next)
     },
